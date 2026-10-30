@@ -922,13 +922,18 @@ details{margin-bottom:.6rem}summary{cursor:pointer;font-weight:700;font-size:.85
 <!-- ══ AVALIAÇÕES ══ -->
 <div id="page-avaliacoes" class="page">
   <div class="card">
+    <div class="card-title">🎯 Desempenho por disciplina</div>
+    <div id="exam-perf"><div class="empty-state">Cadastre uma avaliação para ver o desempenho.</div></div>
+  </div>
+  <div class="card">
     <div class="card-title">📋 Rastreador de Avaliações</div>
     <div id="exam-list"><div class="empty-state">Nenhuma avaliação cadastrada.</div></div>
 
     <div class="add-box" style="margin-top:0.75rem">
-      <div class="add-box-title">+ Nova Avaliação</div>
+      <div class="add-box-title" id="exam-form-title">+ Nova Avaliação</div>
       <input type="text" class="form-input" id="exam-name" placeholder="Nome (ex.: N1, Checkpoint, Prova Final)" style="width:100%; margin-bottom:0.5rem">
       <div class="form-row">
+        <select class="form-select" id="exam-tipo" onchange="examDefaults()"></select>
         <select class="form-select" id="exam-subject">
           <option value="TGP">TGP</option>
           <option value="D. Const.">D. Const.</option>
@@ -938,14 +943,21 @@ details{margin-bottom:.6rem}summary{cursor:pointer;font-weight:700;font-size:.85
           <option value="Extensão">Extensão</option>
           <option value="Todas">Todas</option>
         </select>
-        <input type="date" class="form-input date-input" id="exam-date" style="flex:1">
       </div>
-      <input type="text" class="form-input" id="exam-note" placeholder="Observação (opcional)" style="width:100%; margin-bottom:0.5rem; margin-top:0.5rem">
-      <button class="btn-primary" onclick="addExam()">Adicionar</button>
+      <div class="form-row" style="margin-top:0.5rem">
+        <input type="date" class="form-input date-input" id="exam-date" style="flex:1">
+        <input type="number" class="form-input" id="exam-grade" min="0" step="0.1" placeholder="Nota obtida" style="width:38%">
+        <input type="number" class="form-input" id="exam-gradeMax" min="0.1" step="0.1" value="10" placeholder="Nota máx." style="width:30%">
+      </div>
+      <div class="form-row" style="margin-top:0.5rem">
+        <input type="number" class="form-input" id="exam-weight" min="0.1" step="0.1" placeholder="Peso" style="width:30%">
+        <input type="text" class="form-input" id="exam-note" placeholder="Observação (opcional)" style="flex:1">
+      </div>
+      <button class="btn-primary" id="exam-save" onclick="addExam()" style="margin-top:0.5rem">Adicionar</button>
+      <button class="btn-primary" id="exam-cancel" onclick="endExamEdit()" style="display:none;margin-top:0.5rem;background:var(--muted)">Cancelar edição</button>
     </div>
   </div>
 </div>
-
 <!-- ══ ERROS ══ -->
 <div id="page-erros" class="page">
   <div class="card">
@@ -1976,47 +1988,128 @@ function renderCronograma() {
 // ═══════════════════════════════════════════════════════════
 //  AVALIAÇÕES
 // ═══════════════════════════════════════════════════════════
+// ── Avaliações e notas ──
+let examEdit = null;
+
+function examWeight(e){return parseFloat(e.weight)||1;}
+function examMax(e){const m=parseFloat(e.gradeMax);return m>0?m:10;}
+function hasGrade(e){return e.grade!==null&&e.grade!==undefined&&e.grade!=='';}
+function examDefaults(){const t=$('exam-tipo').value;$('exam-weight').value=EVAL_WEIGHTS[t]||1;if(!$('exam-gradeMax').value)$('exam-gradeMax').value=10;}
+
+// Média ponderada da disciplina na escala 0–10, com o mesmo cálculo do boletim.
+function examAvg(subjectKey){
+ const itens=state.exams.filter(e=>e.subject===subjectKey&&hasGrade(e))
+  .map(e=>({grade:parseFloat(e.grade)/examMax(e)*10,weight:examWeight(e)}));
+ return itens.length?weightedAverage(itens):null;}
+
+function renderExamPerf(){
+ const el=$('exam-perf');if(!el)return;
+ const grupos={};
+ state.exams.forEach(e=>{(grupos[e.subject]=grupos[e.subject]||[]).push(e);});
+ const chaves=Object.keys(grupos);
+ if(!chaves.length){el.innerHTML='<div class="empty-state">Cadastre uma avaliação para ver o desempenho.</div>';return;}
+ el.innerHTML=chaves.map(k=>{
+  const itens=grupos[k],comNota=itens.filter(hasGrade),avg=examAvg(k),st=subjectStatus(avg);
+  return `<div style="display:flex;justify-content:space-between;align-items:center;gap:.5rem;padding:.45rem 0;border-bottom:1px solid var(--border)">
+   <div style="min-width:0">
+    <div style="font-size:.82rem;font-weight:700;color:${discColor(k)}">${k}</div>
+    <div class="text-muted" style="font-size:.7rem">${comNota.length} com nota · ${itens.length-comNota.length} pendente(s)</div>
+   </div>
+   <div style="text-align:right">
+    <div style="font-weight:700;font-size:.85rem">${avg!==null?avg.toFixed(1):'–'}<span class="text-muted" style="font-size:.7rem">/10</span></div>
+    <span class="bol-status ${st.cls}">${st.label}</span>
+   </div></div>`;}).join('');}
+
 function renderAvaliacoes() {
-  const sorted = [...state.exams].sort((a,b) => a.date.localeCompare(b.date));
-  const el = document.getElementById('exam-list');
-  if (!sorted.length) { el.innerHTML = '<div class="empty-state">Nenhuma avaliação cadastrada.</div>'; return; }
-  el.innerHTML = sorted.map(e => {
-    const d = daysUntil(e.date);
-    const isPast = d < 0;
-    return `<div class="exam-item ${isPast?'exam-past':''}" style="border-color:${discColor(e.subject)}; background:${discBg(e.subject)}">
-      <div class="exam-info">
-        <div class="exam-name">${e.name}</div>
-        <div class="exam-sub" style="color:${discColor(e.subject)}">${e.subject}</div>
-        ${e.note ? `<div class="exam-note">${e.note}</div>` : ''}
-      </div>
-      <div class="exam-date-wrap">
-        <div class="exam-date">${fmt(e.date)}</div>
-        <div class="exam-days" style="color:${!isPast&&d<=3?'#C0392B':'var(--muted)'}">
-          ${isPast ? 'Realizada' : d===0 ? 'Hoje!' : d===1 ? 'Amanhã' : 'em '+d+' dias'}
-        </div>
-        <button class="exam-del" onclick="deleteExam('${e.id}')">🗑 Remover</button>
-      </div>
-    </div>`;
-  }).join('');
+ const tipoEl=$('exam-tipo');
+ if(tipoEl&&tipoEl.options.length!==EVAL_TYPES.length)
+  tipoEl.innerHTML=EVAL_TYPES.map(t=>`<option value="${t}">${t}</option>`).join('');
+ if(tipoEl&&!$('exam-weight').value)examDefaults();
+
+ const sorted=[...state.exams].sort((a,b)=>a.date.localeCompare(b.date));
+ const el=document.getElementById('exam-list');
+ if(!sorted.length){el.innerHTML='<div class="empty-state">Nenhuma avaliação cadastrada.</div>';}
+ else el.innerHTML=sorted.map(e=>{
+  const d=daysUntil(e.date),isPast=d<0,max=examMax(e);
+  const nota=hasGrade(e)?(e.grade+'/'+max):'sem nota';
+  return `<div class="exam-item ${isPast?'exam-past':''}" style="border-color:${discColor(e.subject)}; background:${discBg(e.subject)}">
+   <div class="exam-info">
+    <div class="exam-name">${e.name}</div>
+    <div class="exam-sub" style="color:${discColor(e.subject)}">${e.subject}${e.tipo?' · '+e.tipo:''}</div>
+    <div class="exam-note" style="font-style:normal">Nota: <b>${nota}</b> · peso ${examWeight(e)}</div>
+    ${e.note?`<div class="exam-note">${e.note}</div>`:''}
+   </div>
+   <div class="exam-date-wrap">
+    <div class="exam-date">${fmt(e.date)}</div>
+    <div class="exam-days" style="color:${!isPast&&d<=3?'#C0392B':'var(--muted)'}">
+     ${isPast?'Realizada':d===0?'Hoje!':d===1?'Amanhã':'em '+d+' dias'}
+    </div>
+    <button class="exam-del" onclick="editExam('${e.id}')">✏️ Editar</button>
+    <button class="exam-del" onclick="deleteExam('${e.id}')">🗑 Remover</button>
+   </div>
+  </div>`;}).join('');
+
+ renderExamPerf();
+}
+
+function editExam(id){
+ const e=state.exams.find(x=>x.id===id);if(!e)return;
+ examEdit=id;
+ $('exam-name').value=e.name||'';
+ if(e.subject)$('exam-subject').value=e.subject;
+ $('exam-date').value=e.date||'';
+ $('exam-note').value=e.note||'';
+ if(e.tipo)$('exam-tipo').value=e.tipo;
+ $('exam-grade').value=hasGrade(e)?e.grade:'';
+ $('exam-gradeMax').value=examMax(e);
+ $('exam-weight').value=examWeight(e);
+ $('exam-form-title').textContent='✏️ Editando avaliação';
+ $('exam-save').textContent='Salvar alterações';
+ $('exam-cancel').style.display='block';
+ $('exam-name').scrollIntoView({block:'center'});
+}
+
+function endExamEdit(){
+ examEdit=null;
+ ['exam-name','exam-date','exam-note','exam-grade'].forEach(i=>{const el=$(i);if(el)el.value='';});
+ if($('exam-gradeMax'))$('exam-gradeMax').value=10;
+ examDefaults();
+ $('exam-form-title').textContent='+ Nova Avaliação';
+ $('exam-save').textContent='Adicionar';
+ $('exam-cancel').style.display='none';
 }
 
 function addExam() {
-  const name = document.getElementById('exam-name').value.trim();
-  const subj = document.getElementById('exam-subject').value;
-  const date = document.getElementById('exam-date').value;
-  const note = document.getElementById('exam-note').value.trim();
-  if (!name || !date) { alert('Preencha o nome e a data.'); return; }
-  state.exams.push({ id: uid(), name, subject: subj, date, note });
-  persist('exams');
-  document.getElementById('exam-name').value = '';
-  document.getElementById('exam-date').value = '';
-  document.getElementById('exam-note').value = '';
-  renderAvaliacoes();
+ const name=document.getElementById('exam-name').value.trim();
+ const subj=document.getElementById('exam-subject').value;
+ const date=document.getElementById('exam-date').value;
+ const note=document.getElementById('exam-note').value.trim();
+ const tipo=document.getElementById('exam-tipo').value;
+ const gRaw=document.getElementById('exam-grade').value.trim();
+ const mRaw=document.getElementById('exam-gradeMax').value.trim();
+ const wRaw=document.getElementById('exam-weight').value.trim();
+ const gradeMax=mRaw===''?10:parseFloat(mRaw);
+ const weight=wRaw===''?(EVAL_WEIGHTS[tipo]||1):parseFloat(wRaw);
+ const grade=gRaw===''?null:parseFloat(gRaw);
+ if(!name||!date){alert('Preencha o nome e a data.');return;}
+ if(!(gradeMax>0)){alert('A nota máxima precisa ser maior que zero.');return;}
+ if(!(weight>0)){alert('O peso precisa ser maior que zero.');return;}
+ if(grade!==null&&(isNaN(grade)||grade<0||grade>gradeMax)){
+  alert('A nota deve estar entre 0 e '+gradeMax+'.');return;}
+ const rec={name,subject:subj,date,note,tipo,grade,gradeMax,weight};
+ if(examEdit){
+  const alvo=state.exams.find(x=>x.id===examEdit);
+  if(alvo)Object.assign(alvo,rec);
+ } else state.exams.push(Object.assign({id:uid()},rec));
+ persist('exams');
+ endExamEdit();
+ renderAvaliacoes();
 }
 
 function deleteExam(id) {
   if (!confirm('Excluir esta avaliação e a nota lançada?')) return;
   state.exams = state.exams.filter(x => x.id !== id);
+  if (examEdit === id) endExamEdit();
   persist('exams');
   renderAvaliacoes();
 }
@@ -2631,17 +2724,18 @@ function populateSubjectSelects(...ids) {
 // ═══════════════════════════════════════════════════════════
 const PASSING_GRADE = 5.0;
 const EVAL_WEIGHTS  = { 'N1':3, 'N2':4, 'Checkpoint':1.5, 'Exame Final':5 };
+// Único cálculo de média ponderada do app: usado pelo boletim e pelas avaliações.
+function weightedAverage(itens){
+ const sumW=itens.reduce((a,e)=>a+(e.weight||1),0);
+ if(!sumW)return null;
+ return itens.reduce((a,e)=>a+parseFloat(e.grade||0)*(e.weight||1),0)/sumW;}
 
 function calcSubjectAvg(subjectId) {
   const evals = state.grades.filter(g => g.periodId === state.currentPeriod && g.subjectId === subjectId && g.grade !== null && g.grade !== '');
   if (!evals.length) return null;
   // Weighted average if all have weights, else simple
   const withWeight = evals.filter(e => e.weight);
-  if (withWeight.length === evals.length) {
-    const sumW = evals.reduce((a,e) => a + (e.weight||1), 0);
-    const sumWG= evals.reduce((a,e) => a + parseFloat(e.grade||0)*(e.weight||1), 0);
-    return sumWG / sumW;
-  }
+  if (withWeight.length === evals.length) return weightedAverage(evals);
   return evals.reduce((a,e) => a + parseFloat(e.grade||0), 0) / evals.length;
 }
 
