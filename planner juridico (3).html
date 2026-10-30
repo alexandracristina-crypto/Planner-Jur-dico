@@ -1048,7 +1048,7 @@ details{margin-bottom:.6rem}summary{cursor:pointer;font-weight:700;font-size:.85
   <div class="add-box"><div class="form-row"><input class="form-input" id="cf-cunit" placeholder="Etapa (N1)" style="max-width:90px"><input class="form-input" id="cf-cname" placeholder="Nome (TA, Prova…)"><input type="number" class="form-input" id="cf-cmax" placeholder="pts" style="max-width:70px"></div><button class="btn-primary" onclick="addComp()">Adicionar componente</button></div>
  </div>
  <div class="card"><div class="card-title">💾 Backup</div>
-  <p class="text-muted" style="font-size:.78rem;margin-bottom:.5rem">Os dados ficam apenas neste navegador. Limpar os dados do navegador ou trocar de aparelho os apaga. Exporte um backup com frequência.</p>
+  <p class="text-muted" style="font-size:.78rem;margin-bottom:.5rem">Os dados ficam apenas neste navegador. Limpar os dados do navegador ou trocar de aparelho os apaga. Exporte um backup com frequência. Ao importar, o arquivo é <b>mesclado</b>: seus dados atuais são mantidos e registros iguais não são duplicados.</p>
   <div id="cf-last" class="text-muted" style="margin-bottom:.5rem"></div>
   <button class="btn-primary" onclick="exportBackup()">Exportar backup</button>
   <label class="btn-primary" style="display:block;text-align:center;margin-top:.5rem;cursor:pointer">Importar backup<input type="file" accept=".json,application/json" style="display:none" onchange="importBackup(this)"></label>
@@ -1444,8 +1444,12 @@ function load(key, def) {
   catch { return def; }
 }
 function save(key, val) {
-  try { localStorage.setItem(key, JSON.stringify(val)); } catch {}
+  try { localStorage.setItem(key, JSON.stringify(val)); }
+  catch { warnSaveFailure(); }
 }
+// Falha de gravação = risco de perder dados: avisa uma vez.
+function warnSaveFailure(){if(warnSaveFailure.shown)return;warnSaveFailure.shown=true;
+ alert('Atenção: o navegador não conseguiu salvar os dados (armazenamento cheio ou bloqueado).\n\nExporte um backup em ⚙️ Config e libere espaço antes de continuar.');}
 
 let state = {
   tasks:    load('pj_tasks', []),
@@ -1677,6 +1681,7 @@ function toggleTask(id) {
 }
 
 function deleteTask(id) {
+  if (!confirm('Excluir esta tarefa?')) return;
   state.tasks = state.tasks.filter(x => x.id !== id);
   persist('tasks');
   renderTaskList();
@@ -1835,6 +1840,7 @@ function consolidateRev(id) {
 }
 
 function deleteRev(id) {
+  if (!confirm('Excluir esta revisão?')) return;
   state.revisions = state.revisions.filter(x => x.id !== id);
   persist('revisions');
   renderRevisoes();
@@ -1929,6 +1935,7 @@ function toggleGoal(key, id) {
 }
 
 function deleteGoal(key, id) {
+  if (!confirm('Excluir esta meta?')) return;
   if (state.goals[key]) {
     state.goals[key] = state.goals[key].filter(x => x.id !== id);
     persist('goals');
@@ -2008,6 +2015,7 @@ function addExam() {
 }
 
 function deleteExam(id) {
+  if (!confirm('Excluir esta avaliação e a nota lançada?')) return;
   state.exams = state.exams.filter(x => x.id !== id);
   persist('exams');
   renderAvaliacoes();
@@ -2053,6 +2061,7 @@ function addError() {
 }
 
 function deleteError(id) {
+  if (!confirm('Excluir este registro de erro?')) return;
   state.errors = state.errors.filter(x => x.id !== id);
   persist('errors');
   renderErros();
@@ -2104,6 +2113,7 @@ function addTerm() {
 }
 
 function deleteTerm(id) {
+  if (!confirm('Excluir este termo do glossário?')) return;
   state.terms = state.terms.filter(x => x.id !== id);
   persist('terms');
   filterTerms();
@@ -2173,6 +2183,7 @@ function renderFaltaHistory() {
 }
 
 function deleteAtt(id) {
+  if (!confirm('Excluir este registro de falta?')) return;
   state.attendance = state.attendance.filter(x => x.id !== id);
   persist('attendance');
   renderFaltas();
@@ -2223,6 +2234,7 @@ function addJuris() {
 }
 
 function deleteJuris(id) {
+  if (!confirm('Excluir esta jurisprudência?')) return;
   state.juris = state.juris.filter(x => x.id !== id);
   persist('juris');
   filterJuris();
@@ -2260,6 +2272,7 @@ function addEsct() {
 }
 
 function deleteEsct(id) {
+  if (!confirm('Excluir esta anotação do escritório?')) return;
   state.escritorio = state.escritorio.filter(x => x.id !== id);
   persist('escritorio');
   renderEscritorio();
@@ -2423,6 +2436,7 @@ function toggleReading(id) {
 }
 
 function deleteReading(id) {
+  if (!confirm('Excluir esta leitura e o progresso dela?')) return;
   state.leituras = state.leituras.filter(x => x.id !== id);
   persist('leituras');
   renderLeituras();
@@ -2565,6 +2579,7 @@ function addFlashcard() {
 }
 
 function deleteFc(id) {
+  if (!confirm('Excluir este flashcard?')) return;
   state.flashcards = state.flashcards.filter(x => x.id !== id);
   persist('flashcards');
   renderFcAll();
@@ -2776,6 +2791,7 @@ function toggleEntrega(id) {
 }
 
 function deleteEntrega(id) {
+  if (!confirm('Excluir esta entrega?')) return;
   state.assignments = state.assignments.filter(x => x.id !== id);
   persist('assignments');
   renderEntregas();
@@ -2917,17 +2933,100 @@ function delComp(id){if(!confirm('Remover este componente? As notas já lançada
  state.config.comps=state.config.comps.filter(c=>c.id!==id);persist('config');renderConfig();}
 
 // ── Backup ──
-function backupJson(){const d={app:'planner-juridico',v:1,date:new Date().toISOString(),data:{}};
+// Exportação: todo o localStorage "pj_*". Importação: MESCLA no que já existe
+// (nada é apagado nem substituído; registros iguais não são duplicados).
+const BACKUP_LABELS={pj_tasks:'tarefas',pj_revisions:'revisões',pj_exams:'provas',pj_grades:'notas',pj_notes:'notas livres',pj_goals:'metas',pj_errors:'erros',pj_terms:'termos',pj_attendance:'faltas',pj_juris:'jurisprudências',pj_escritorio:'escritório',pj_leituras:'leituras',pj_flashcards:'flashcards',pj_assignments:'entregas',pj_events:'eventos',pj_compl:'atividades compl.',pj_conteudos:'conteúdos',pj_periods:'períodos',pj_hist:'histórico',pj_scores:'notas por componente'};
+
+function backupData(){const d={app:'planner-juridico',v:1,date:new Date().toISOString(),data:{}};
  for(let i=0;i<localStorage.length;i++){const k=localStorage.key(i);if(k.startsWith('pj_'))d.data[k]=localStorage.getItem(k);}
- return JSON.stringify(d);}
-function exportBackup(){const a=document.createElement('a');
- a.href=URL.createObjectURL(new Blob([backupJson()],{type:'application/json'}));a.download='backup-planner-'+today()+'.json';
- document.body.appendChild(a);a.click();a.remove();localStorage.setItem('pj_lastBackup',today());renderConfig();}
+ return d;}
+function backupJson(){return JSON.stringify(backupData());}
+function recordCount(v){if(Array.isArray(v))return v.length;if(v&&typeof v==='object')return Object.keys(v).length;return v==null?0:1;}
+function backupLines(d){
+ return Object.keys(d.data).filter(k=>k!=='pj_lastBackup').map(k=>{
+  let v;try{v=JSON.parse(d.data[k]);}catch{return null;}
+  if(!Array.isArray(v)&&!isPlainObj(v))return null; // ajustes internos não são registros
+  const n=recordCount(v);return n?(n+' '+(BACKUP_LABELS[k]||k.replace('pj_',''))):null;
+ }).filter(Boolean);}
+
+function exportBackup(){const d=backupData();const a=document.createElement('a');
+ a.href=URL.createObjectURL(new Blob([JSON.stringify(d)],{type:'application/json'}));a.download='backup-planner-'+today()+'.json';
+ document.body.appendChild(a);a.click();a.remove();localStorage.setItem('pj_lastBackup',today());renderConfig();
+ const itens=backupLines(d);
+ alert('Backup exportado ✅\n\n'+(itens.length?itens.join(' · '):'Nenhum registro cadastrado ainda')+'\n\nGuarde o arquivo: ele contém todos os dados deste aparelho.');
+}
 function copyBackup(){navigator.clipboard.writeText(backupJson()).then(()=>{localStorage.setItem('pj_lastBackup',today());renderConfig();alert('Backup copiado. Cole em um arquivo de texto e guarde.');},()=>alert('Não foi possível copiar. Use “Exportar backup”.'));}
-function importBackup(inp){const f=inp.files[0];if(!f)return;const r=new FileReader();
- r.onload=()=>{let d;try{d=JSON.parse(r.result);if(d.app!=='planner-juridico'||!d.data)throw 0;}catch(e){alert('Arquivo de backup inválido.');return;}
-  if(!confirm('Isto substituirá os dados atuais deste aparelho pelos do backup. Continuar?'))return;
-  Object.entries(d.data).forEach(([k,v])=>localStorage.setItem(k,v));location.reload();};
+
+// ── Mesclagem de backup (não destrutiva) ──
+function isPlainObj(v){return v&&typeof v==='object'&&!Array.isArray(v);}
+function canonical(v){
+ if(Array.isArray(v))return '['+v.map(canonical).join(',')+']';
+ if(isPlainObj(v))return '{'+Object.keys(v).sort().map(k=>JSON.stringify(k)+':'+canonical(v[k])).join(',')+'}';
+ const s=JSON.stringify(v);return s===undefined?'null':s;}
+// Identidade de um registro: id estável quando existe; senão, o conteúdo completo.
+function recordKey(keyName,v){
+ if(isPlainObj(v)){
+  if(keyName==='pj_grades'&&v.subjectId&&v.evalType)return 'nota:'+v.periodId+'|'+v.subjectId+'|'+v.evalType;
+  if(v.id!==undefined&&v.id!==null)return 'id:'+v.id;}
+ return 'json:'+canonical(v);}
+function mergeNode(local,incoming,keyName,st){
+ if(local===undefined){st.added++;return incoming;}
+ if(Array.isArray(local)&&Array.isArray(incoming)){
+  const out=local.slice(),seen=new Set(local.map(x=>recordKey(keyName,x)));
+  incoming.forEach(x=>{const k=recordKey(keyName,x);
+   if(seen.has(k)){st.dupes++;return;}seen.add(k);out.push(x);st.added++;});
+  return out;}
+ if(isPlainObj(local)&&isPlainObj(incoming)){
+  const out=Object.assign({},local);
+  Object.keys(incoming).forEach(k=>{
+   if(Object.prototype.hasOwnProperty.call(local,k))out[k]=mergeNode(local[k],incoming[k],keyName,st);
+   else{out[k]=incoming[k];st.added++;}});
+  return out;}
+ st.dupes++;return local;} // valor já existente é mantido
+
+function parseBackupFile(raw){
+ let d;try{d=JSON.parse(raw);}catch{throw new Error('O arquivo não é um JSON válido.');}
+ if(!d||d.app!=='planner-juridico'||!isPlainObj(d.data))throw new Error('Este arquivo não parece ser um backup do Planner.');
+ const data={};
+ Object.keys(d.data).forEach(k=>{
+  if(!k.startsWith('pj_')||k==='pj_lastBackup')return;
+  const v=d.data[k];
+  if(typeof v==='string'){try{data[k]=JSON.parse(v);}catch{throw new Error('O backup tem um registro corrompido ('+k+').');}}
+  else data[k]=v;});
+ if(!Object.keys(data).length)throw new Error('O backup não contém nenhum dado do planner.');
+ return {date:d.date,data};}
+
+function planMerge(backup){
+ const st={added:0,dupes:0},out={};
+ Object.keys(backup.data).forEach(k=>{
+  const raw=localStorage.getItem(k);let local;
+  if(raw!==null){try{local=JSON.parse(raw);}catch{local=undefined;}}
+  const antes=st.added;
+  const merged=mergeNode(local,backup.data[k],k,st);
+  if(st.added>antes||raw===null)out[k]=merged;});
+ return {out,st};}
+
+function importBackup(inp){
+ const f=inp.files&&inp.files[0];if(!f)return;
+ const r=new FileReader();
+ r.onload=()=>{
+  inp.value='';
+  let backup;
+  try{backup=parseBackupFile(r.result);}
+  catch(e){alert('Arquivo de backup inválido.\n\n'+(e.message||''));return;}
+  const {out,st}=planMerge(backup);
+  const quando=backup.date?fmt(String(backup.date).slice(0,10)):'data desconhecida';
+  if(!st.added){
+   alert('Nada para importar: os '+st.dupes+' registros do arquivo já existem neste aparelho.\n\nSeus dados não foram alterados.');
+   return;}
+  if(!confirm('Mesclar backup de '+quando+'?\n\n'+
+   '• '+st.added+' registro(s) novo(s) serão adicionados\n'+
+   '• '+st.dupes+' registro(s) iguais do arquivo serão ignorados\n\n'+
+   'Seus dados atuais NÃO serão apagados nem substituídos. Continuar?'))return;
+  Object.keys(out).forEach(k=>{try{localStorage.setItem(k,JSON.stringify(out[k]));}catch{}});
+  alert('Backup mesclado ✅\n'+st.added+' registro(s) adicionado(s) · '+st.dupes+' já existiam.\n\nA página será recarregada.');
+  location.reload();};
+ r.onerror=()=>alert('Não foi possível ler o arquivo.');
  r.readAsText(f);}
 
 // ── Página da disciplina ──
@@ -2953,7 +3052,7 @@ function renderDiscDetail(){
 }
 function addCont(){const t=$('ct-in').value.trim();if(!t)return;(state.conteudos[discSel]=state.conteudos[discSel]||[]).push({id:uid(),t,s:0});persist('conteudos');renderDiscDetail();}
 function cycleCont(id){const c=(state.conteudos[discSel]||[]).find(x=>x.id===id);if(c){c.s=(c.s+1)%3;persist('conteudos');renderDiscDetail();}}
-function delCont(id){state.conteudos[discSel]=(state.conteudos[discSel]||[]).filter(x=>x.id!==id);persist('conteudos');renderDiscDetail();}
+function delCont(id){if(!confirm('Excluir este conteúdo e as observações dele?'))return;state.conteudos[discSel]=(state.conteudos[discSel]||[]).filter(x=>x.id!==id);persist('conteudos');renderDiscDetail();}
 
 
 // ═══════════ CURRÍCULO, HISTÓRICO E COMPLEMENTARES ═══════════
@@ -3045,7 +3144,7 @@ function renderGrad(){
 function addCompl(){const name=$('cm-name').value.trim(),h=parseFloat($('cm-h').value),d=$('cm-date').value||today();
  if(!name||isNaN(h)||h<=0){alert('Informe a atividade e as horas.');return;}
  state.compl.push({id:uid(),date:d,name,h});persist('compl');$('cm-name').value='';$('cm-h').value='';renderGrad();}
-function delCompl(id){state.compl=state.compl.filter(c=>c.id!==id);persist('compl');renderGrad();}
+function delCompl(id){if(!confirm('Excluir esta atividade complementar?'))return;state.compl=state.compl.filter(c=>c.id!==id);persist('compl');renderGrad();}
 
 
 // ═══════════ CALENDÁRIO MENSAL (começa vazio; só exibe eventos cadastrados aqui) ═══════════
