@@ -778,6 +778,12 @@ details{margin-bottom:.6rem}summary{cursor:pointer;font-weight:700;font-size:.85
     <div class="card-title">✅ Checklist Diário</div>
     <div class="section-label">Data</div>
     <input type="date" class="date-input" id="task-date">
+    <div class="filter-row" id="task-view-row">
+      <button class="filter-pill active" onclick="setTaskView('dia',this)">Dia</button>
+      <button class="filter-pill" onclick="setTaskView('semana',this)">Semana</button>
+      <button class="filter-pill" onclick="setTaskView('mes',this)">Mês</button>
+      <button class="filter-pill" onclick="setTaskView('atrasadas',this)">Atrasadas</button>
+    </div>
     <div id="task-list"><div class="empty-state">Nenhuma tarefa para esta data.</div></div>
 
     <div class="add-box" style="margin-top:0.75rem">
@@ -802,6 +808,7 @@ details{margin-bottom:.6rem}summary{cursor:pointer;font-weight:700;font-size:.85
           <option value="EAD">EAD</option>
         </select>
         <input type="number" class="form-input" id="task-duration" placeholder="min" value="30" style="width:65px; flex:none">
+        <select class="form-select" id="task-priority" style="max-width:110px"><option>Baixa</option><option selected>Média</option><option>Alta</option></select>
       </div>
       <button class="btn-primary" onclick="addTask()">Adicionar</button>
     </div>
@@ -1674,11 +1681,42 @@ function renderHoje() {
   renderTaskList();
 }
 
+let taskView = 'dia';
+function setTaskView(v, btn) {
+  taskView = v;
+  document.querySelectorAll('#task-view-row .filter-pill').forEach(b => b.classList.remove('active'));
+  if (btn) btn.classList.add('active');
+  renderTaskList();
+}
+
+// Prazo da tarefa no período correspondente (usa o período gravado ou o da disciplina)
+function taskPeriodOf(t) {
+  if (t.period != null) return t.period;
+  const per = Object.keys(state.periods).find(p => (state.periods[p].subjects || []).some(s => s.abbrev === t.subject));
+  return per != null ? Number(per) : state.currentPeriod;
+}
+
 function renderTaskList() {
-  const date = document.getElementById('task-date').value;
-  const tasks = state.tasks.filter(t => t.date === date);
+  const date = document.getElementById('task-date').value || today();
+  const tdy = today();
+  let tasks = [...state.tasks].filter(t => t.date);
+  if (taskView === 'dia') tasks = tasks.filter(t => t.date === date);
+  else if (taskView === 'semana') {
+    const d0 = new Date(date + 'T12:00'), d1 = new Date(d0);
+    d1.setDate(d1.getDate() + 6);
+    const end = ymd(d1.getFullYear(), d1.getMonth(), d1.getDate());
+    tasks = tasks.filter(t => t.date >= date && t.date <= end);
+  }
+  else if (taskView === 'mes') { const ym = date.slice(0, 7); tasks = tasks.filter(t => t.date.slice(0, 7) === ym); }
+  else tasks = tasks.filter(t => !t.completed && t.date < tdy).sort((a, b) => a.date.localeCompare(b.date));
+  if (taskView !== 'atrasadas') tasks.sort((a, b) => a.date.localeCompare(b.date) || (a.completed ? 1 : 0) - (b.completed ? 1 : 0));
+
   const el = document.getElementById('task-list');
-  if (!tasks.length) { el.innerHTML = '<div class="empty-state">Nenhuma tarefa para esta data.</div>'; return; }
+  if (!tasks.length) {
+    el.innerHTML = '<div class="empty-state">' + (taskView === 'dia' ? 'Nenhuma tarefa para esta data.' : taskView === 'atrasadas' ? 'Nenhuma tarefa atrasada. 🎉' : 'Nenhuma tarefa neste intervalo.') + '</div>';
+    return;
+  }
+  const prioColor = p => p === 'Alta' ? 'var(--danger)' : p === 'Baixa' ? 'var(--muted)' : '#B7791F';
   el.innerHTML = tasks.map(t => `
     <div class="task-item ${t.completed?'done':''}" id="ti-${t.id}">
       <div class="task-check ${t.completed?'checked':''}" onclick="toggleTask('${t.id}')"></div>
@@ -1687,6 +1725,9 @@ function renderTaskList() {
         <div class="task-meta">
           <span class="task-badge" style="background:${discColor(t.subject)}">${t.subject}</span>
           &nbsp;${t.type} · ${t.duration} min
+          <span style="color:${prioColor(t.priority)}; font-weight:700">&nbsp;· ${t.priority || 'Média'}</span>
+          ${taskView !== 'dia' ? `&nbsp;· ${fmt(t.date)}` : ''}
+          ${!t.completed && t.date < tdy ? ' <b style="color:var(--danger)">· atrasada</b>' : ''}
         </div>
       </div>
       <button class="task-del" onclick="deleteTask('${t.id}')">🗑</button>
@@ -1699,8 +1740,9 @@ function addTask() {
   const subj = document.getElementById('task-subject').value;
   const type = document.getElementById('task-type').value;
   const dur  = parseInt(document.getElementById('task-duration').value) || 30;
+  const prio = document.getElementById('task-priority')?.value || 'Média';
   if (!desc) { alert('Preencha a descrição da tarefa.'); return; }
-  state.tasks.push({ id: uid(), date, subject: subj, type, description: desc, duration: dur, completed: false });
+  state.tasks.push({ id: uid(), date, period: state.currentPeriod, subject: subj, type, description: desc, duration: dur, priority: prio, completed: false });
   persist('tasks');
   document.getElementById('task-desc').value = '';
   renderTaskList();
@@ -3327,6 +3369,21 @@ const esc=t=>String(t==null?'':t).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;',
 const localToday=()=>{const n=new Date();return ymd(n.getFullYear(),n.getMonth(),n.getDate());};
 let calY=new Date().getFullYear(),calM=new Date().getMonth(),calSel=localToday(),calEdit=null;
 
+// Itens de outros módulos no calendário — leitura apenas, sem duplicar cadastro
+function calExtra(dateStr){
+ const out=[];
+ state.exams.filter(e=>e.date===dateStr).forEach(e=>out.push({kind:'Prova',color:EV_TYPES.Prova,title:e.name,subject:e.subject,note:e.tipo||''}));
+ state.assignments.filter(a=>a.dueDate===dateStr).forEach(a=>{
+  const s=(state.periods[a.periodId]?.subjects||[]).find(x=>x.id===a.subjectId);
+  out.push({kind:'Entrega',color:EV_TYPES.Entrega,title:a.title,subject:s?s.abbrev:'',note:a.completed?'concluída':'a entregar'});});
+ state.revisions.filter(r=>!r.consolidated&&r.nextReview===dateStr).forEach(r=>out.push({kind:'Revisão',color:EV_TYPES.Revisão,title:r.topic,subject:r.subject,note:'revisão programada'}));
+ return out;
+}
+function calExtraRows(dateStr){
+ const xt=calExtra(dateStr); if(!xt.length)return;
+ const el=$('cal-day-list'); const em=el.querySelector('.empty-state'); if(em)em.remove();
+ el.insertAdjacentHTML('beforeend', xt.map(x=>`<div class="rev-item" style="border-color:${x.color}"><div class="rev-item-top"><div class="rev-topic">${esc(x.title)}</div><span class="rev-stage-badge" style="background:${x.color}">${x.kind}</span></div><div class="rev-next">${[x.subject||'',x.note||'',(x.kind==='Prova'?'ver em Provas':x.kind==='Entrega'?'ver em Entregas':'ver em Revisões')].filter(Boolean).join(' · ')}</div></div>`).join(''));
+}
 function renderCalendario(){
  const ty=$('ev-type');
  if(!ty.options.length)ty.innerHTML=Object.keys(EV_TYPES).map(k=>`<option value="${k}">${k}</option>`).join('');
@@ -3342,8 +3399,9 @@ function renderCalendario(){
   let d=i-first+1,y=calY,m=calM,out=false;
   if(d<1){d+=prev;m--;out=true;if(m<0){m=11;y--;}}
   else if(d>dim){d-=dim;m++;out=true;if(m>11){m=0;y++;}}
-  const ds=ymd(y,m,d),evs=state.events.filter(e=>e.date===ds);
-  h+=`<div class="cal-cell${out?' out':''}${ds===tdy?' today':''}${ds===calSel?' sel':''}" onclick="calPick('${ds}')">${d}<div class="cal-dots">${evs.slice(0,3).map(e=>`<span class="cal-dot" style="background:${EV_TYPES[e.type]||'#666'}"></span>`).join('')}${evs.length>3?'<span style="font-size:.5rem">+</span>':''}</div></div>`;
+  const ds=ymd(y,m,d),evs=state.events.filter(e=>e.date===ds),xt=calExtra(ds);
+  const dots=[...evs.map(e=>EV_TYPES[e.type]||'#666'),...xt.map(x=>x.color)];
+  h+=`<div class="cal-cell${out?' out':''}${ds===tdy?' today':''}${ds===calSel?' sel':''}" onclick="calPick('${ds}')">${d}<div class="cal-dots">${dots.slice(0,3).map(c=>`<span class="cal-dot" style="background:${c}"></span>`).join('')}${dots.length>3?'<span style="font-size:.5rem">+</span>':''}</div></div>`;
  }
  $('cal-grid').innerHTML=h;
  renderCalDay();
@@ -3354,6 +3412,7 @@ function renderCalDay(){
  const evs=state.events.filter(e=>e.date===calSel).sort((a,b)=>(a.time||'99').localeCompare(b.time||'99'));
  $('cal-day-list').innerHTML=evs.map(e=>{const c=EV_TYPES[e.type]||'#666';
   return `<div class="rev-item" style="border-color:${c}"><div class="rev-item-top"><div class="rev-topic">${esc(e.title)}</div><span class="rev-stage-badge" style="background:${c}">${esc(e.type)}</span></div><div class="rev-next">${e.time?'⏰ '+esc(e.time):''}${e.time&&e.subject?' · ':''}${esc(e.subject)}${e.note?'<br>📝 '+esc(e.note):''}</div><div class="rev-actions"><button class="rev-btn advance" onclick="editEvent('${e.id}')">Editar</button><button class="rev-btn del" onclick="deleteEvent('${e.id}')">Excluir</button></div></div>`;}).join('')||'<div class="empty-state">Nenhum evento neste dia.</div>';
+ calExtraRows(calSel);
  if(!calEdit)$('ev-date').value=calSel;
 }
 function calNav(dm){calM+=dm;if(calM<0){calM=11;calY--;}if(calM>11){calM=0;calY++;}renderCalendario();}
