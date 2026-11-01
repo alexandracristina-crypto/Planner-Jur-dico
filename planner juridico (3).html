@@ -1065,6 +1065,10 @@ details{margin-bottom:.6rem}summary{cursor:pointer;font-weight:700;font-size:.85
   <button class="btn-primary" onclick="exportBackup()">Exportar backup</button>
   <label class="btn-primary" style="display:block;text-align:center;margin-top:.5rem;cursor:pointer">Importar backup<input type="file" accept=".json,application/json" style="display:none" onchange="importBackup(this)"></label>
   <button class="btn-primary" style="margin-top:.5rem;background:var(--muted)" onclick="copyBackup()">Copiar backup (texto)</button>
+  <div class="section-label" style="margin-top:1.1rem">🛟 Pontos de recuperação</div>
+  <p class="text-muted" style="font-size:.78rem;margin-bottom:.5rem">Cópias locais guardadas neste navegador (as 5 mais recentes). Use antes de importar ou de mudanças grandes. Não substituem o backup exportado.</p>
+  <div id="cf-snaps"></div>
+  <button class="btn-primary" style="margin-top:.5rem" onclick="mkSnapshot()">Criar ponto de recuperação</button>
  </div>
 </div>
 <div id="page-disc" class="page"><div id="disc-detail"></div></div>
@@ -1079,6 +1083,11 @@ details{margin-bottom:.6rem}summary{cursor:pointer;font-weight:700;font-size:.85
       <div class="bol-sum-box"><div class="bol-sum-num" id="bol-media-geral">–</div><div class="bol-sum-label">Média geral</div></div>
     </div>
     <div id="boletim-list"></div>
+    <div class="section-label" style="margin-top:1.25rem">🧪 Simulador de notas · não altera o boletim</div>
+    <p class="text-muted" style="font-size:0.75rem;margin-bottom:0.5rem">Escolha a disciplina e teste notas hipotéticas nas avaliações que ainda não têm nota real.</p>
+    <select class="form-select" id="sim-disc" onchange="renderSim()" style="width:100%;max-width:100%;box-sizing:border-box"></select>
+    <div id="sim-fields" style="margin-top:0.5rem"></div>
+    <div id="sim-result" style="margin-top:0.75rem"></div>
   </div>
 </div>
 
@@ -1141,6 +1150,7 @@ details{margin-bottom:.6rem}summary{cursor:pointer;font-weight:700;font-size:.85
         <input type="text" class="form-input" id="de-time" placeholder="Horário" style="flex:1">
       </div>
       <input type="text" class="form-input" id="de-prof" placeholder="Professor(a)" style="width:100%; margin:0.5rem 0">
+      <input type="number" class="form-input" id="de-ch" placeholder="Carga horária (h)" style="width:100%; margin-bottom:0.5rem">
       <div class="section-label">Cor</div>
       <div class="color-picker-row" id="de-color-row"></div>
       <input type="hidden" id="de-color-val" value="#7B5EA7">
@@ -2831,7 +2841,7 @@ function renderDisciplinas() {
       <div class="disc-edit-color" style="background:${s.color}"></div>
       <div style="flex:1">
         <div class="disc-edit-name" style="cursor:pointer" onclick="openDisc('${s.id}')">${s.name} ›</div>
-        <div class="disc-edit-day">${s.day} · ${s.time}${s.professor?' · '+s.professor:''}</div>
+        <div class="disc-edit-day">${s.day} · ${s.time}${s.professor?' · '+s.professor:''}${s.ch?' · '+s.ch+'h':''}</div>
       </div>
       <button class="disc-edit-del" onclick="deleteDisc('${s.id}')">🗑</button>
     </div>`).join('');
@@ -2860,12 +2870,13 @@ function addDiscEdit() {
   const day    = document.getElementById('de-day').value.trim();
   const time   = document.getElementById('de-time').value.trim();
   const prof   = document.getElementById('de-prof').value.trim();
+  const ch     = parseFloat(document.getElementById('de-ch').value)||0;
   const color  = document.getElementById('de-color-val').value;
   if (!name || !abbrev) { alert('Preencha o nome e a sigla.'); return; }
   const id = abbrev.toLowerCase().replace(/[^a-z0-9]/g,'') + '_' + uid();
-  state.periods[state.currentPeriod].subjects.push({ id, name, abbrev, color, day, time, professor:prof });
+  state.periods[state.currentPeriod].subjects.push({ id, name, abbrev, color, day, time, professor:prof, ch });
   persist('periods');
-  ['de-name','de-abbrev','de-day','de-time','de-prof'].forEach(eid => { const el=document.getElementById(eid); if(el) el.value=''; });
+  ['de-name','de-abbrev','de-day','de-time','de-prof','de-ch'].forEach(eid => { const el=document.getElementById(eid); if(el) el.value=''; });
   renderDisciplinas();
 }
 
@@ -2919,7 +2930,7 @@ function subjStatus(t){
 }
 function renderBoletim(){
  const subs=currentSubjects(),el=$('boletim-list'),C=state.config;
- if(!subs.length){el.innerHTML='<div class="empty-state">Nenhuma disciplina neste período. Cadastre em “Discip.”.</div>';return;}
+ if(!subs.length){el.innerHTML='<div class="empty-state">Nenhuma disciplina neste período. Cadastre em “Discip.”.</div>';renderSim();return;}
  const units=[...new Set(C.comps.map(c=>c.unit))];let ap=0,rk=0,sum=0,n=0;
  el.innerHTML=subs.map(s=>{
   const t=subjTotals(s.id),st=subjStatus(t);
@@ -2929,7 +2940,36 @@ function renderBoletim(){
   const ex=(t.pending===0&&t.got<C.passScore)||t.ex!=null?`<div class="section-label">Exame Final</div><div class="bol-eval-row"><div class="bol-eval-name">Exame</div><input type="number" class="bol-grade-input" min="0" max="${C.examMax}" step="0.5" value="${t.ex??''}" placeholder="–" onchange="setScore('${s.id}','exame',this.value,${C.examMax})"><span class="bol-grade-max">/${C.examMax}</span></div>`:'';
   return `<div class="bol-subject"><div class="bol-subject-header" style="background:${s.color}"><div class="bol-subject-name">${s.name}</div><div class="bol-media-badge">${t.got}/${t.max}</div></div><div class="bol-subject-body">${rows}${ex}<span class="bol-status ${st.cls}">${st.label}</span>${st.hint?`<div class="bol-precisa">${st.hint}</div>`:''}</div></div>`;}).join('');
  $('bol-aprovadas').textContent=ap;$('bol-risco').textContent=rk;$('bol-media-geral').textContent=n?(sum/n).toFixed(1):'–';
+ renderSim();
 }
+// ── Simulador de notas: só em memória, nunca grava ──
+const simVals={};
+function renderSim(){
+ const sel=$('sim-disc');if(!sel)return;
+ const subs=currentSubjects(),cur=sel.value;
+ sel.innerHTML=subs.length?subs.map(s=>`<option value="${s.id}">${s.name}</option>`).join(''):'<option value="">Sem disciplinas</option>';
+ if(subs.some(s=>s.id===cur))sel.value=cur;
+ const sid=sel.value,box=$('sim-fields'),res=$('sim-result');
+ if(!subs.length||!sid){box.innerHTML='';res.innerHTML='<div class="empty-state">Cadastre uma disciplina para simular.</div>';return;}
+ const C=state.config;
+ box.innerHTML=C.comps.map(c=>{const real=state.scores[sk(sid,c.id)];
+  return `<div class="bol-eval-row"><div class="bol-eval-name">${c.name}${real!=null?` <span class="text-muted">(real: ${real})</span>`:''}</div><input type="number" class="bol-grade-input" min="0" max="${c.max}" step="0.5" placeholder="–" value="${simVals[sid+'|'+c.id]??''}" onchange="simSet('${sid}','${c.id}',this.value,${c.max})"><span class="bol-grade-max">/${c.max}</span></div>`;}).join('');
+ simRender(sid);}
+function simSet(sid,cid,v,max){const k=sid+'|'+cid;
+ if(v==='')delete simVals[k];else simVals[k]=Math.min(max,Math.max(0,parseFloat(v)||0));
+ renderSim();}
+function simClear(){Object.keys(simVals).forEach(k=>delete simVals[k]);renderSim();}
+function simRender(sid){
+ const C=state.config,t=subjTotals(sid);let sim=0,simDone=0,faltando=[];
+ C.comps.forEach(c=>{const real=state.scores[sk(sid,c.id)],v=simVals[sid+'|'+c.id];
+  if(real==null&&v!=null){sim+=v;simDone+=c.max;}else if(real==null)faltando.push(c.name);});
+ const proj=t.got+sim,st=subjStatus({got:proj,done:t.done+simDone,pending:t.pending-simDone,max:t.max,ex:null});
+ const falta=C.passScore-proj;
+ $('sim-result').innerHTML=`<div class="bol-summary"><div class="bol-sum-box"><div class="bol-sum-num">${proj.toFixed(1)}</div><div class="bol-sum-label">Total projetado</div></div><div class="bol-sum-box"><div class="bol-sum-num">${t.got.toFixed(1)}</div><div class="bol-sum-label">Real lançado</div></div><div class="bol-sum-box"><div class="bol-sum-num">${sim.toFixed(1)}</div><div class="bol-sum-label">Simulado</div></div></div>
+ <span class="bol-status ${st.cls}">SIMULADO · ${st.label}</span>
+ <div class="bol-precisa">${falta>0?`Faltam ${falta.toFixed(1)} pontos para atingir ${C.passScore}.`:`Meta de ${C.passScore} pontos alcançada com este simulado.`}${faltando.length?' Sem nota (real ou simulada): '+faltando.join(', ')+'.':''}</div>
+ <button class="btn-primary" style="margin-top:.5rem;background:var(--muted)" onclick="simClear()">Limpar simulação</button>`;}
+
 function setScore(sid,cid,v,max){const k=sk(sid,cid);
  if(v==='')delete state.scores[k];else state.scores[k]=Math.min(max,Math.max(0,parseFloat(v)));
  persist('scores');renderBoletim();}
@@ -2942,6 +2982,7 @@ function renderConfig(){
  const tot=C.comps.reduce((a,c)=>a+c.max,0);
  $('cf-total').textContent=tot===C.maxScore?`✓ Soma dos componentes: ${tot} pontos`:`⚠ A soma dos componentes (${tot}) difere da pontuação total (${C.maxScore}).`;
  const lb=localStorage.getItem('pj_lastBackup');$('cf-last').textContent=lb?'Último backup: '+fmt(lb):'Nenhum backup exportado ainda.';
+ renderSnaps();
 }
 function saveConfig(){const C=state.config,g=i=>$('cf-'+i).value.trim(),n=(i,d)=>{const v=parseFloat(g(i));return isNaN(v)?d:v;};
  C.name=g('name');C.inst=g('inst');C.course=g('course');C.campus=g('campus');C.maxScore=n('max',100);C.passScore=n('pass',70);C.minFreq=n('freq',75);C.examMax=n('exmax',100);C.examPass=n('expass',70);C.examMode=$('cf-exmode').value;
@@ -2959,7 +3000,7 @@ function delComp(id){if(!confirm('Remover este componente? As notas já lançada
 const BACKUP_LABELS={pj_tasks:'tarefas',pj_revisions:'revisões',pj_exams:'provas',pj_grades:'notas',pj_notes:'notas livres',pj_goals:'metas',pj_errors:'erros',pj_terms:'termos',pj_attendance:'faltas',pj_juris:'jurisprudências',pj_escritorio:'escritório',pj_leituras:'leituras',pj_flashcards:'flashcards',pj_assignments:'entregas',pj_events:'eventos',pj_compl:'atividades compl.',pj_conteudos:'conteúdos',pj_periods:'períodos',pj_hist:'histórico',pj_scores:'notas por componente'};
 
 function backupData(){const d={app:'planner-juridico',v:1,date:new Date().toISOString(),data:{}};
- for(let i=0;i<localStorage.length;i++){const k=localStorage.key(i);if(k.startsWith('pj_'))d.data[k]=localStorage.getItem(k);}
+ for(let i=0;i<localStorage.length;i++){const k=localStorage.key(i);if(k.startsWith('pj_')&&k!=='pj_backups'&&k!=='pj_lastBackup')d.data[k]=localStorage.getItem(k);}
  return d;}
 function backupJson(){return JSON.stringify(backupData());}
 function recordCount(v){if(Array.isArray(v))return v.length;if(v&&typeof v==='object')return Object.keys(v).length;return v==null?0:1;}
@@ -3010,7 +3051,7 @@ function parseBackupFile(raw){
  if(!d||d.app!=='planner-juridico'||!isPlainObj(d.data))throw new Error('Este arquivo não parece ser um backup do Planner.');
  const data={};
  Object.keys(d.data).forEach(k=>{
-  if(!k.startsWith('pj_')||k==='pj_lastBackup')return;
+  if(!k.startsWith('pj_')||k==='pj_lastBackup'||k==='pj_backups')return;
   const v=d.data[k];
   if(typeof v==='string'){try{data[k]=JSON.parse(v);}catch{throw new Error('O backup tem um registro corrompido ('+k+').');}}
   else data[k]=v;});
@@ -3044,11 +3085,46 @@ function importBackup(inp){
    '• '+st.added+' registro(s) novo(s) serão adicionados\n'+
    '• '+st.dupes+' registro(s) iguais do arquivo serão ignorados\n\n'+
    'Seus dados atuais NÃO serão apagados nem substituídos. Continuar?'))return;
+  snapshotNow('antes de importar');
   Object.keys(out).forEach(k=>{try{localStorage.setItem(k,JSON.stringify(out[k]));}catch{}});
   alert('Backup mesclado ✅\n'+st.added+' registro(s) adicionado(s) · '+st.dupes+' já existiam.\n\nA página será recarregada.');
   location.reload();};
  r.onerror=()=>alert('Não foi possível ler o arquivo.');
  r.readAsText(f);}
+
+// ── Pontos de recuperação (cópias locais no próprio navegador) ──
+// Guardam o conteúdo de todas as chaves pj_* (exceto os próprios pontos).
+const BK_KEY='pj_backups',BK_MAX=5;
+function bkList(){const l=load(BK_KEY,[]);return Array.isArray(l)?l:[];}
+function bkStore(list){
+ for(let n=list.length;n>=1;n--){try{localStorage.setItem(BK_KEY,JSON.stringify(list.slice(0,n)));return true;}catch{}}
+ return false;}
+function snapshotNow(label){
+ const data={};
+ for(let i=0;i<localStorage.length;i++){const k=localStorage.key(i);
+  if(k.startsWith('pj_')&&k!==BK_KEY&&k!=='pj_lastBackup')data[k]=localStorage.getItem(k);}
+ const list=bkList();list.unshift({id:uid(),ts:new Date().toISOString(),label:label||'manual',data});
+ return bkStore(list.slice(0,BK_MAX));}
+function snapWhen(iso){const d=new Date(iso);return d.toLocaleDateString('pt-BR')+' às '+d.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});}
+function mkSnapshot(){
+ if(!snapshotNow('manual')){alert('Não foi possível criar o ponto: o armazenamento do navegador está cheio. Exporte um backup e libere espaço.');return;}
+ renderConfig();alert('Ponto de recuperação criado ✅\n\nEle fica neste navegador. Guarde também um backup exportado: esse sai do aparelho.');}
+function restoreSnapshot(id){
+ const b=bkList().find(x=>x.id===id);if(!b)return;
+ const ks=Object.keys(b.data);
+ if(!confirm('Restaurar o ponto de '+snapWhen(b.ts)+'?\n\n'+ks.length+' grupos de dados serão reescritos com o conteúdo desse ponto. O estado atual é guardado antes, em um novo ponto de recuperação.'))return;
+ snapshotNow('antes de restaurar');
+ let fail=0;ks.forEach(k=>{try{localStorage.setItem(k,b.data[k]);}catch{fail++;}});
+ if(fail){alert('Restauração parcial: '+fail+' grupo(s) não puderam ser gravados (armazenamento cheio).');return;}
+ alert('Dados restaurados ✅\n\nA página será recarregada.');location.reload();}
+function delSnapshot(id){
+ if(!confirm('Excluir este ponto de recuperação? Os dados atuais não mudam.'))return;
+ bkStore(bkList().filter(x=>x.id!==id));renderConfig();}
+function renderSnaps(){
+ const el=$('cf-snaps');if(!el)return;
+ const list=bkList();
+ el.innerHTML=list.length?list.map(b=>`<div class="disc-edit-item" style="border-color:var(--primary)"><div style="flex:1;font-size:.78rem"><b>${snapWhen(b.ts)}</b><br><span class="text-muted">${b.label||'manual'} · ${Object.keys(b.data).length} grupos · ~${Math.round(JSON.stringify(b).length/1024)} KB</span></div><button class="disc-edit-del" title="Restaurar" onclick="restoreSnapshot('${b.id}')">↺</button><button class="disc-edit-del" title="Excluir" onclick="delSnapshot('${b.id}')">🗑</button></div>`).join(''):'<div class="empty-state">Nenhum ponto de recuperação ainda.</div>';
+}
 
 // ── Página da disciplina ──
 function openDisc(id){discSel=id;showPage('disc',null);}
@@ -3062,7 +3138,7 @@ function renderDiscDetail(){
   ct=state.conteudos[s.id]||[],pc=ct.length?Math.round(ct.filter(c=>c.s===2).length/ct.length*100):0,
   box=(n,l)=>`<div class="bol-sum-box"><div class="bol-sum-num">${n}</div><div class="bol-sum-label">${l}</div></div>`;
  el.innerHTML=`<div class="card" style="border-top:5px solid ${s.color}"><div class="card-title" style="color:${s.color}">${s.name}</div>
- <div class="text-muted">${s.day||''} ${s.time||''}${s.professor?' · '+s.professor:''}</div>
+ <div class="text-muted">${s.day||''} ${s.time||''}${s.professor?' · '+s.professor:''}${s.ch?' · '+s.ch+'h':''}</div>
  <div class="bol-summary" style="margin-top:.75rem">${box(t.got+'/'+t.max,'Pontos')}${box(at.pct+'%','Frequência')}${box((min/60).toFixed(1)+'h','Estudadas')}</div>
  <span class="bol-status ${st.cls}">${st.label}</span>${st.hint?`<div class="bol-precisa">${st.hint}</div>`:''}
  <div class="bol-summary" style="margin-top:.75rem">${box(er,'Erros')}${box(rv,'Revisões')}${box(fc+' / '+en,'Cards / Entregas')}</div></div>
