@@ -1140,7 +1140,7 @@ details{margin-bottom:.6rem}summary{cursor:pointer;font-weight:700;font-size:.85
     <p class="text-muted" style="margin-bottom:1rem; font-size:0.78rem">Gerencie as disciplinas de cada período. As alterações refletem em todo o planner.</p>
     <div id="disc-edit-list"></div>
     <div class="add-box" style="margin-top:0.75rem">
-      <div class="add-box-title">+ Nova Disciplina</div>
+      <div class="add-box-title" id="de-form-title">+ Nova Disciplina</div>
       <div class="form-row">
         <input type="text" class="form-input" id="de-name"   placeholder="Nome completo" style="flex:2">
         <input type="text" class="form-input" id="de-abbrev" placeholder="Sigla" style="flex:1; max-width:80px">
@@ -1151,10 +1151,15 @@ details{margin-bottom:.6rem}summary{cursor:pointer;font-weight:700;font-size:.85
       </div>
       <input type="text" class="form-input" id="de-prof" placeholder="Professor(a)" style="width:100%; margin:0.5rem 0">
       <input type="number" class="form-input" id="de-ch" placeholder="Carga horária (h)" style="width:100%; margin-bottom:0.5rem">
+      <div class="form-row">
+        <select class="form-select" id="de-mode" style="flex:1"><option>Presencial</option><option>EAD</option></select>
+        <select class="form-select" id="de-sit" style="flex:1"><option value="">Situação…</option><option>Cursando</option><option>Concluída</option><option>Futura</option><option>Pendente</option></select>
+      </div>
       <div class="section-label">Cor</div>
       <div class="color-picker-row" id="de-color-row"></div>
       <input type="hidden" id="de-color-val" value="#7B5EA7">
-      <button class="btn-primary" onclick="addDiscEdit()">Adicionar Disciplina</button>
+      <button class="btn-primary" id="de-save" onclick="addDiscEdit()">Adicionar Disciplina</button>
+      <button class="btn-primary" id="de-cancel" style="display:none;background:var(--muted);margin-top:.5rem" onclick="cancelDiscEdit()">Cancelar edição</button>
     </div>
   </div>
 </div>
@@ -2703,6 +2708,7 @@ function buildPeriodBar() {
 }
 
 function switchPeriod(p) {
+  if (typeof discEditId !== 'undefined' && discEditId) cancelDiscEdit();
   state.currentPeriod = p;
   persist('currentPeriod');
   if (!state.periods[p]) {
@@ -2841,8 +2847,9 @@ function renderDisciplinas() {
       <div class="disc-edit-color" style="background:${s.color}"></div>
       <div style="flex:1">
         <div class="disc-edit-name" style="cursor:pointer" onclick="openDisc('${s.id}')">${s.name} ›</div>
-        <div class="disc-edit-day">${s.day} · ${s.time}${s.professor?' · '+s.professor:''}${s.ch?' · '+s.ch+'h':''}</div>
+        <div class="disc-edit-day">${s.day} · ${s.time}${s.professor?' · '+s.professor:''}${s.ch?' · '+s.ch+'h':''}${s.mode?' · '+s.mode:''}${s.sit?' · '+s.sit:''}</div>
       </div>
+      <button class="disc-edit-del" title="Editar" onclick="editDisc('${s.id}')">✎</button>
       <button class="disc-edit-del" onclick="deleteDisc('${s.id}')">🗑</button>
     </div>`).join('');
 }
@@ -2864,6 +2871,46 @@ function selectColor(color, rowId, valId) {
   buildColorPicker(rowId, valId);
 }
 
+// ── Edição de disciplina: o id nunca muda; sigla nova migra os vínculos ──
+let discEditId = null;
+const ABBREV_LISTS = ['attendance','errors','flashcards','revisions','leituras','juris','escritorio','exams'];
+function abbrevRecords(old){const out=[];ABBREV_LISTS.forEach(k=>(state[k]||[]).forEach(r=>{if(r.subject===old)out.push([k,r]);}));return out;}
+function updateDisc(campos){
+ const s=(state.periods[state.currentPeriod].subjects||[]).find(x=>x.id===discEditId);
+ if(!s){cancelDiscEdit();return;}
+ const old=s.abbrev,mudou=old!==campos.abbrev,recs=mudou?abbrevRecords(old):[];
+ if(recs.length&&!confirm('A sigla mudou de "'+old+'" para "'+campos.abbrev+'".\n\n'+recs.length+' registro(s) ligados a ela (faltas, provas, erros, cards, revisões, leituras, jurisprudências, escritório) serão atualizados para manter o vínculo.\n\nContinuar?'))return;
+ Object.assign(s,campos);
+ recs.forEach(([k,r])=>{r.subject=campos.abbrev;});
+ persist('periods');
+ [...new Set(recs.map(([k])=>k))].forEach(persist);
+ cancelDiscEdit();renderDisciplinas();syncDisciplines();
+ if(recs.length)alert('Disciplina atualizada ✅\n'+recs.length+' vínculo(s) ajustados para a nova sigla.');
+}
+function editDisc(id){
+ const s=currentSubjects().find(x=>x.id===id);if(!s)return;
+ discEditId=id;
+ const set=(i,v)=>{const e=document.getElementById(i);if(e)e.value=v;};
+ set('de-name',s.name);set('de-abbrev',s.abbrev);set('de-day',s.day||'');set('de-time',s.time||'');
+ set('de-prof',s.professor||'');set('de-ch',s.ch||'');set('de-mode',s.mode||'Presencial');set('de-sit',s.sit||'');
+ document.getElementById('de-color-val').value=s.color||SWATCHES[0];
+ buildColorPicker('de-color-row','de-color-val');
+ document.getElementById('de-form-title').textContent='✏️ Editando: '+s.name;
+ document.getElementById('de-save').textContent='Salvar alterações';
+ document.getElementById('de-cancel').style.display='block';
+ document.getElementById('de-name').scrollIntoView({block:'center'});
+}
+function cancelDiscEdit(){
+ if(discEditId===null)return;
+ discEditId=null;
+ ['de-name','de-abbrev','de-day','de-time','de-prof','de-ch'].forEach(i=>{const e=document.getElementById(i);if(e)e.value='';});
+ const m=document.getElementById('de-mode');if(m)m.selectedIndex=0;
+ const s2=document.getElementById('de-sit');if(s2)s2.value='';
+ document.getElementById('de-form-title').textContent='+ Nova Disciplina';
+ document.getElementById('de-save').textContent='Adicionar Disciplina';
+ document.getElementById('de-cancel').style.display='none';
+}
+
 function addDiscEdit() {
   const name   = document.getElementById('de-name').value.trim();
   const abbrev = document.getElementById('de-abbrev').value.trim();
@@ -2873,8 +2920,11 @@ function addDiscEdit() {
   const ch     = parseFloat(document.getElementById('de-ch').value)||0;
   const color  = document.getElementById('de-color-val').value;
   if (!name || !abbrev) { alert('Preencha o nome e a sigla.'); return; }
+  const mode   = document.getElementById('de-mode')?.value || 'Presencial';
+  const sit    = document.getElementById('de-sit')?.value || '';
+  if (discEditId) { updateDisc({ name, abbrev, color, day, time, professor:prof, ch, mode, sit }); return; }
   const id = abbrev.toLowerCase().replace(/[^a-z0-9]/g,'') + '_' + uid();
-  state.periods[state.currentPeriod].subjects.push({ id, name, abbrev, color, day, time, professor:prof, ch });
+  state.periods[state.currentPeriod].subjects.push({ id, name, abbrev, color, day, time, professor:prof, ch, mode, sit });
   persist('periods');
   ['de-name','de-abbrev','de-day','de-time','de-prof','de-ch'].forEach(eid => { const el=document.getElementById(eid); if(el) el.value=''; });
   renderDisciplinas();
