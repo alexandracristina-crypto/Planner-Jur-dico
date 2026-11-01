@@ -1,0 +1,3413 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Planner Jurídico — Alexandra</title>
+<style>
+/* ═══════════════════════════════
+   TOKENS
+═══════════════════════════════ */
+:root {
+  --primary: #B5174E;
+  --primary-dark: #8C0E39;
+  --primary-light: #F7D6E5;
+  --primary-ultra: #FEF0F6;
+  --bg: #FDF4F8;
+  --surface: #FFFFFF;
+  --border: #F0D6E5;
+  --text: #1A0A11;
+  --muted: #9B7A8A;
+  --success: #2D8B5E;
+  --warning: #C07A00;
+  --danger: #D63B3B;
+
+  --c-tgp: #7B5EA7;
+  --c-const: #1A6B9A;
+  --c-civil: #B07A00;
+  --c-penal: #C0392B;
+  --c-hist: #2D7A5E;
+  --c-ext: #6B8C2A;
+
+  --radius: 14px;
+  --radius-sm: 8px;
+  --shadow: 0 2px 12px rgba(181,23,78,0.08);
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  font-size: 15px;
+  line-height: 1.5;
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  max-width: 500px;
+  margin: 0 auto;
+  position: relative;
+}
+
+/* ═══════════════════════════════
+   HEADER
+═══════════════════════════════ */
+.app-header {
+  background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+  color: white;
+  padding: 1rem 1.25rem 0.75rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  position: sticky;
+  top: 0;
+  z-index: 50;
+  box-shadow: 0 2px 16px rgba(140,14,57,0.25);
+}
+
+.app-header h1 { font-size: 1.1rem; font-weight: 700; }
+.app-header p { font-size: 0.7rem; opacity: 0.82; margin-top: 0.1rem; }
+
+.btn-print {
+  background: rgba(255,255,255,0.18);
+  border: 1.5px solid rgba(255,255,255,0.35);
+  color: white;
+  padding: 0.35rem 0.75rem;
+  border-radius: 20px;
+  font-size: 0.72rem;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.btn-print:active { background: rgba(255,255,255,0.3); }
+
+/* ═══════════════════════════════
+   NAV
+═══════════════════════════════ */
+.bottom-nav {
+  position: fixed;
+  bottom: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 100%;
+  max-width: 500px;
+  background: var(--surface);
+  border-top: 1px solid var(--border);
+  display: flex;
+  overflow-x: auto;
+  scrollbar-width: none;
+  z-index: 50;
+  padding-bottom: env(safe-area-inset-bottom);
+}
+.bottom-nav::-webkit-scrollbar { display: none; }
+
+.nav-btn {
+  flex: 0 0 auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.2rem;
+  padding: 0.55rem 0.85rem 0.45rem;
+  border: none;
+  background: none;
+  cursor: pointer;
+  font-size: 0.6rem;
+  color: var(--muted);
+  font-weight: 500;
+  transition: color 0.15s;
+  min-width: 58px;
+}
+
+.nav-btn .nav-icon { font-size: 1.2rem; }
+.nav-btn.active { color: var(--primary); }
+.nav-btn.active .nav-icon { transform: scale(1.1); }
+
+/* ═══════════════════════════════
+   PAGES
+═══════════════════════════════ */
+.page { display: none; padding: 1rem 1rem 6rem; animation: fadeIn 0.2s ease; }
+.page.active { display: block; }
+
+@keyframes fadeIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: translateY(0); } }
+
+/* ═══════════════════════════════
+   CARDS
+═══════════════════════════════ */
+.card {
+  background: var(--surface);
+  border-radius: var(--radius);
+  padding: 1.1rem 1.25rem;
+  margin-bottom: 1rem;
+  box-shadow: var(--shadow);
+  border: 1px solid var(--border);
+}
+
+.card-title {
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--primary);
+  margin-bottom: 1rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+/* ═══════════════════════════════
+   INÍCIO
+═══════════════════════════════ */
+.welcome-name { font-size: 1.15rem; font-weight: 700; color: var(--primary); }
+.welcome-date { font-size: 0.78rem; color: var(--muted); margin-top: 0.15rem; }
+.welcome-pct { font-size: 1.5rem; font-weight: 800; color: var(--primary); }
+.welcome-pct-label { font-size: 0.68rem; color: var(--muted); text-align: right; }
+.welcome-top { display: flex; justify-content: space-between; align-items: flex-start; }
+
+.progress-bar-wrap { margin: 0.75rem 0 0.4rem; position: relative; }
+.progress-track { height: 6px; background: var(--primary-light); border-radius: 3px; overflow: hidden; }
+.progress-fill { height: 100%; background: linear-gradient(90deg, var(--primary), #E8609A); border-radius: 3px; transition: width 0.4s; }
+.progress-dates { display: flex; justify-content: space-between; font-size: 0.65rem; color: var(--muted); margin-top: 0.3rem; }
+.progress-week { text-align: center; font-size: 0.65rem; color: var(--muted); }
+
+.stats-row { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 0.6rem; margin-top: 0.85rem; }
+.stat-box { background: var(--primary-ultra); border-radius: var(--radius-sm); padding: 0.6rem 0.4rem; text-align: center; }
+.stat-num { font-size: 1.35rem; font-weight: 800; color: var(--primary); }
+.stat-label { font-size: 0.62rem; color: var(--muted); margin-top: 0.1rem; }
+
+.suggestion-item {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.65rem 0.9rem;
+  border-radius: var(--radius-sm);
+  background: var(--primary-ultra);
+  margin-bottom: 0.5rem;
+  border-left: 3px solid;
+}
+.suggestion-badge {
+  font-size: 0.62rem;
+  font-weight: 700;
+  padding: 0.2rem 0.5rem;
+  border-radius: 20px;
+  white-space: nowrap;
+  color: white;
+}
+.suggestion-text { font-size: 0.82rem; flex: 1; }
+.suggestion-time { font-size: 0.72rem; color: var(--muted); white-space: nowrap; }
+
+.progress-disc { display: flex; align-items: center; gap: 0.75rem; margin-bottom: 0.7rem; }
+.progress-disc-name { font-size: 0.78rem; font-weight: 600; min-width: 70px; }
+.progress-disc-bar { flex: 1; height: 5px; background: var(--primary-light); border-radius: 3px; overflow: hidden; }
+.progress-disc-fill { height: 100%; border-radius: 3px; transition: width 0.4s; }
+.progress-disc-min { font-size: 0.65rem; color: var(--muted); min-width: 38px; text-align: right; }
+
+/* ═══════════════════════════════
+   HOJE
+═══════════════════════════════ */
+.date-input {
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 0.5rem 0.75rem;
+  font-size: 0.88rem;
+  color: var(--text);
+  background: var(--bg);
+  width: 100%;
+  margin-bottom: 1rem;
+}
+
+.task-item {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.7rem 0.9rem;
+  background: var(--primary-ultra);
+  border-radius: var(--radius-sm);
+  margin-bottom: 0.5rem;
+  transition: opacity 0.2s;
+}
+.task-item.done { opacity: 0.55; }
+.task-item.done .task-desc { text-decoration: line-through; }
+
+.task-check {
+  width: 20px; height: 20px;
+  border-radius: 50%;
+  border: 2px solid var(--primary);
+  cursor: pointer;
+  flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center;
+  background: white;
+  transition: all 0.15s;
+}
+.task-check.checked { background: var(--primary); border-color: var(--primary); }
+.task-check.checked::after { content: '✓'; color: white; font-size: 0.7rem; font-weight: 700; }
+
+.task-desc { font-size: 0.82rem; flex: 1; }
+.task-meta { font-size: 0.65rem; color: var(--muted); margin-top: 0.1rem; }
+.task-badge { font-size: 0.6rem; font-weight: 700; padding: 0.15rem 0.45rem; border-radius: 20px; color: white; white-space: nowrap; }
+
+.task-del { background: none; border: none; color: var(--muted); font-size: 1rem; cursor: pointer; padding: 0.2rem; flex-shrink: 0; }
+.task-del:active { color: var(--danger); }
+
+.add-box {
+  border: 2px dashed var(--border);
+  border-radius: var(--radius);
+  padding: 1rem;
+  margin-top: 0.75rem;
+}
+.add-box-title { font-size: 0.82rem; font-weight: 600; color: var(--primary); margin-bottom: 0.75rem; }
+
+.form-row { display: flex; gap: 0.5rem; margin-bottom: 0.5rem; flex-wrap: wrap; }
+.form-input {
+  flex: 1;
+  min-width: 0;
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 0.5rem 0.65rem;
+  font-size: 0.82rem;
+  color: var(--text);
+  background: white;
+}
+.form-input:focus { outline: none; border-color: var(--primary); }
+
+.form-select {
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 0.5rem 0.6rem;
+  font-size: 0.8rem;
+  color: var(--text);
+  background: white;
+  cursor: pointer;
+}
+.form-select:focus { outline: none; border-color: var(--primary); }
+
+.btn-primary {
+  background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+  color: white;
+  border: none;
+  border-radius: var(--radius-sm);
+  padding: 0.6rem 1.25rem;
+  font-size: 0.85rem;
+  font-weight: 700;
+  cursor: pointer;
+  width: 100%;
+  margin-top: 0.25rem;
+  transition: opacity 0.15s;
+}
+.btn-primary:active { opacity: 0.85; }
+
+.empty-state { text-align: center; padding: 1.5rem; color: var(--muted); font-size: 0.82rem; }
+
+/* ═══════════════════════════════
+   PROGRESSO
+═══════════════════════════════ */
+.prog-totals { display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; margin-bottom: 1rem; }
+.prog-box { background: var(--primary-ultra); border-radius: var(--radius-sm); padding: 0.85rem; text-align: center; }
+.prog-box-num { font-size: 1.6rem; font-weight: 800; color: var(--primary); }
+.prog-box-label { font-size: 0.65rem; color: var(--muted); margin-top: 0.1rem; }
+.prog-meta { font-size: 0.7rem; color: var(--muted); margin-bottom: 1rem; text-align: center; }
+
+.prog-disc-card {
+  border-radius: var(--radius-sm);
+  padding: 0.85rem 1rem;
+  margin-bottom: 0.6rem;
+  border-left: 4px solid;
+}
+.prog-disc-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem; }
+.prog-disc-name-big { font-size: 0.88rem; font-weight: 700; }
+.prog-disc-pct { font-size: 0.88rem; font-weight: 800; }
+.prog-disc-details { font-size: 0.68rem; color: var(--muted); margin-top: 0.2rem; }
+.prog-disc-track { height: 6px; background: rgba(255,255,255,0.5); border-radius: 3px; overflow: hidden; margin-top: 0.5rem; }
+.prog-disc-bar-fill { height: 100%; border-radius: 3px; }
+
+/* Questões */
+.q-counter { display: flex; align-items: center; gap: 0.6rem; margin-top: 0.6rem; }
+.q-input { width: 55px; border: 1.5px solid var(--border); border-radius: var(--radius-sm); padding: 0.3rem 0.5rem; font-size: 0.8rem; text-align: center; }
+.q-btn { background: var(--primary); color: white; border: none; border-radius: var(--radius-sm); padding: 0.3rem 0.65rem; font-size: 0.75rem; font-weight: 600; cursor: pointer; }
+.q-stat { font-size: 0.7rem; color: var(--muted); }
+
+/* ═══════════════════════════════
+   REVISÕES
+═══════════════════════════════ */
+.rev-cycle { font-size: 0.72rem; color: var(--muted); margin-bottom: 1rem; }
+.rev-cycle span { margin-right: 0.3rem; }
+
+.rev-item {
+  padding: 0.75rem 0.9rem;
+  background: var(--primary-ultra);
+  border-radius: var(--radius-sm);
+  margin-bottom: 0.5rem;
+  border-left: 3px solid;
+}
+.rev-item-top { display: flex; justify-content: space-between; align-items: flex-start; }
+.rev-topic { font-size: 0.85rem; font-weight: 600; }
+.rev-badge-wrap { display: flex; gap: 0.4rem; align-items: center; }
+.rev-stage-badge { font-size: 0.6rem; font-weight: 700; padding: 0.15rem 0.5rem; border-radius: 20px; color: white; }
+.rev-next { font-size: 0.7rem; color: var(--muted); margin-top: 0.3rem; }
+.rev-actions { display: flex; gap: 0.4rem; margin-top: 0.5rem; }
+.rev-btn { font-size: 0.7rem; font-weight: 600; padding: 0.25rem 0.6rem; border-radius: 20px; border: none; cursor: pointer; }
+.rev-btn.advance { background: var(--primary); color: white; }
+.rev-btn.done { background: var(--success); color: white; }
+.rev-btn.del { background: #f0f0f0; color: var(--muted); }
+
+/* ═══════════════════════════════
+   NOTAS
+═══════════════════════════════ */
+.notes-textarea {
+  width: 100%;
+  min-height: 220px;
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 0.75rem;
+  font-size: 0.85rem;
+  color: var(--text);
+  resize: vertical;
+  font-family: inherit;
+  line-height: 1.6;
+}
+.notes-textarea:focus { outline: none; border-color: var(--primary); }
+.notes-saved { font-size: 0.68rem; color: var(--success); margin-top: 0.4rem; }
+.notes-count { font-size: 0.68rem; color: var(--muted); float: right; }
+
+/* ═══════════════════════════════
+   METAS
+═══════════════════════════════ */
+.goal-item {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.65rem 0.9rem;
+  background: var(--primary-ultra);
+  border-radius: var(--radius-sm);
+  margin-bottom: 0.5rem;
+}
+.goal-check { width: 20px; height: 20px; border-radius: 50%; border: 2px solid var(--primary); cursor: pointer; flex-shrink: 0; display: flex; align-items: center; justify-content: center; background: white; transition: all 0.15s; }
+.goal-check.checked { background: var(--primary); border-color: var(--primary); }
+.goal-check.checked::after { content: '✓'; color: white; font-size: 0.7rem; font-weight: 700; }
+.goal-text { flex: 1; font-size: 0.83rem; }
+.goal-text.done { text-decoration: line-through; color: var(--muted); }
+.goal-del { background: none; border: none; color: var(--muted); cursor: pointer; font-size: 0.85rem; }
+
+.quick-suggestions { display: flex; flex-wrap: wrap; gap: 0.4rem; margin-top: 0.75rem; }
+.quick-pill {
+  background: var(--primary-ultra);
+  border: 1.5px solid var(--primary-light);
+  color: var(--primary);
+  border-radius: 20px;
+  padding: 0.3rem 0.75rem;
+  font-size: 0.72rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.quick-pill:active { background: var(--primary-light); }
+
+/* ═══════════════════════════════
+   CRONOGRAMA
+═══════════════════════════════ */
+.schedule-day {
+  border-radius: var(--radius-sm);
+  margin-bottom: 0.6rem;
+  overflow: hidden;
+}
+.schedule-day-header {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.65rem 0.9rem;
+  font-weight: 700;
+  font-size: 0.82rem;
+  color: white;
+}
+.schedule-day-body { padding: 0.65rem 0.9rem; background: var(--primary-ultra); }
+.schedule-disc { font-size: 0.85rem; font-weight: 600; margin-bottom: 0.2rem; }
+.schedule-time { font-size: 0.72rem; color: var(--muted); }
+.schedule-today { border: 2px solid var(--primary); }
+
+.schedule-legend { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-bottom: 1rem; }
+.legend-item { display: flex; align-items: center; gap: 0.3rem; font-size: 0.68rem; color: var(--muted); }
+.legend-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+
+/* ═══════════════════════════════
+   AVALIAÇÕES
+═══════════════════════════════ */
+.exam-item {
+  padding: 0.75rem 0.9rem;
+  background: var(--primary-ultra);
+  border-radius: var(--radius-sm);
+  margin-bottom: 0.5rem;
+  border-left: 4px solid;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+}
+.exam-info .exam-name { font-size: 0.85rem; font-weight: 700; }
+.exam-info .exam-sub { font-size: 0.72rem; color: var(--muted); margin-top: 0.15rem; }
+.exam-info .exam-note { font-size: 0.72rem; color: var(--text); margin-top: 0.25rem; font-style: italic; }
+.exam-date-wrap { text-align: right; }
+.exam-date { font-size: 0.78rem; font-weight: 700; color: var(--primary); }
+.exam-days { font-size: 0.65rem; color: var(--muted); margin-top: 0.1rem; }
+.exam-del { display: block; background: none; border: none; color: var(--muted); cursor: pointer; font-size: 0.75rem; margin-top: 0.4rem; }
+
+.exam-past { opacity: 0.5; }
+
+/* ═══════════════════════════════
+   DIÁRIO DE ERROS
+═══════════════════════════════ */
+.error-item {
+  padding: 0.85rem 0.9rem;
+  background: #FFF8F8;
+  border-radius: var(--radius-sm);
+  margin-bottom: 0.6rem;
+  border-left: 3px solid var(--danger);
+}
+.error-item-top { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 0.5rem; }
+.error-subject-badge { font-size: 0.6rem; font-weight: 700; padding: 0.15rem 0.5rem; border-radius: 20px; color: white; }
+.error-date { font-size: 0.65rem; color: var(--muted); }
+.error-label { font-size: 0.65rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--muted); margin-bottom: 0.15rem; }
+.error-text { font-size: 0.8rem; margin-bottom: 0.5rem; }
+.error-correct { font-size: 0.8rem; color: var(--success); font-weight: 600; }
+.error-reason { font-size: 0.75rem; color: var(--muted); margin-top: 0.35rem; font-style: italic; }
+.error-del { background: none; border: none; color: var(--muted); cursor: pointer; font-size: 0.75rem; margin-top: 0.4rem; display: block; }
+
+/* ═══════════════════════════════
+   TERMOS JURÍDICOS
+═══════════════════════════════ */
+.term-item {
+  padding: 0.85rem 0.9rem;
+  background: var(--primary-ultra);
+  border-radius: var(--radius-sm);
+  margin-bottom: 0.6rem;
+  border-left: 3px solid var(--primary);
+}
+.term-word { font-size: 1rem; font-weight: 800; color: var(--primary); }
+.term-etymology { font-size: 0.7rem; color: var(--muted); font-style: italic; margin-top: 0.1rem; }
+.term-def { font-size: 0.82rem; margin-top: 0.5rem; line-height: 1.5; }
+.term-example { font-size: 0.75rem; color: #5a3a50; margin-top: 0.4rem; background: white; padding: 0.4rem 0.6rem; border-radius: 6px; font-style: italic; }
+.term-date { font-size: 0.62rem; color: var(--muted); margin-top: 0.4rem; }
+.term-del { background: none; border: none; color: var(--muted); cursor: pointer; font-size: 0.75rem; float: right; }
+
+.search-bar {
+  width: 100%;
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 0.55rem 0.85rem;
+  font-size: 0.85rem;
+  margin-bottom: 1rem;
+  background: white;
+}
+.search-bar:focus { outline: none; border-color: var(--primary); }
+
+/* ═══════════════════════════════
+   SECTION LABEL
+═══════════════════════════════ */
+.section-label {
+  font-size: 0.65rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--primary);
+  margin-bottom: 0.6rem;
+  margin-top: 0.25rem;
+}
+
+/* ═══════════════════════════════
+   UTILS
+═══════════════════════════════ */
+.divider { height: 1px; background: var(--border); margin: 0.75rem 0; }
+.text-muted { color: var(--muted); font-size: 0.8rem; }
+.mt-sm { margin-top: 0.5rem; }
+.flex-between { display: flex; justify-content: space-between; align-items: center; }
+
+/* ═══ FALTAS ═══ */
+.falta-card { border-radius: var(--radius-sm); padding: 0.9rem 1rem; margin-bottom: 0.6rem; border-left: 4px solid; }
+.falta-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.35rem; }
+.falta-name { font-size: 0.88rem; font-weight: 700; }
+.falta-pct { font-size: 1rem; font-weight: 800; }
+.falta-detail { font-size: 0.7rem; color: var(--muted); margin-bottom: 0.45rem; }
+.falta-track { height: 6px; background: rgba(0,0,0,0.08); border-radius: 3px; overflow: hidden; margin-bottom: 0.65rem; }
+.falta-fill { height: 100%; border-radius: 3px; transition: width 0.4s; }
+.falta-btns { display: flex; gap: 0.5rem; }
+.falta-btn { flex: 1; padding: 0.4rem; border-radius: 6px; border: none; font-size: 0.75rem; font-weight: 700; cursor: pointer; }
+.falta-btn.present { background: #E8F8EF; color: var(--success); border: 1.5px solid var(--success); }
+.falta-btn.absent  { background: #FFF0F0; color: var(--danger);  border: 1.5px solid var(--danger); }
+.falta-btn:active { opacity: 0.7; }
+.falta-alert { font-size: 0.67rem; font-weight: 700; padding: 0.2rem 0.55rem; border-radius: 20px; }
+.falta-alert.ok     { background:#E8F8EF; color:var(--success); }
+.falta-alert.warn   { background:#FFF8E0; color:var(--warning); }
+.falta-alert.danger { background:#FFF0F0; color:var(--danger);  }
+.falta-log-item { display:flex; justify-content:space-between; align-items:center; padding:0.3rem 0; border-bottom:1px solid var(--border); font-size:0.75rem; }
+.falta-log-del { background:none; border:none; color:var(--muted); cursor:pointer; }
+
+/* ═══ JURISPRUDÊNCIA ═══ */
+.juris-item { padding:0.85rem 0.9rem; background:var(--primary-ultra); border-radius:var(--radius-sm); margin-bottom:0.6rem; border-left:3px solid var(--primary); }
+.juris-header { display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:0.35rem; }
+.juris-id { font-size:0.7rem; font-weight:700; color:var(--muted); }
+.tribunal-badge { font-size:0.62rem; font-weight:800; padding:0.18rem 0.55rem; border-radius:4px; color:white; letter-spacing:0.05em; }
+.juris-subject { font-size:0.88rem; font-weight:700; color:var(--primary); margin-bottom:0.3rem; }
+.juris-ementa { font-size:0.8rem; line-height:1.5; margin-bottom:0.35rem; }
+.juris-app { font-size:0.75rem; color:#5a3a50; background:white; padding:0.35rem 0.6rem; border-radius:6px; font-style:italic; }
+.juris-del { background:none; border:none; color:var(--muted); cursor:pointer; font-size:0.72rem; display:block; margin-top:0.4rem; }
+
+/* ═══ ESCRITÓRIO ═══ */
+.esct-item { padding:0.85rem 0.9rem; background:var(--primary-ultra); border-radius:var(--radius-sm); margin-bottom:0.6rem; border-left:3px solid var(--c-ext); }
+.esct-header { display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:0.3rem; }
+.esct-date { font-size:0.65rem; color:var(--muted); }
+.esct-disc { font-size:0.62rem; font-weight:700; padding:0.15rem 0.5rem; border-radius:20px; color:white; }
+.esct-title { font-size:0.85rem; font-weight:700; color:var(--c-ext); margin-bottom:0.25rem; }
+.esct-text { font-size:0.8rem; line-height:1.5; }
+.esct-case { font-size:0.72rem; color:var(--muted); font-style:italic; margin-top:0.3rem; }
+.esct-del { background:none; border:none; color:var(--muted); cursor:pointer; font-size:0.72rem; margin-top:0.3rem; display:block; }
+
+/* ═══ POMODORO ═══ */
+.pom-display { text-align:center; padding:0.75rem 0 1rem; }
+.pom-mode-label { font-size:0.72rem; font-weight:700; letter-spacing:0.12em; text-transform:uppercase; color:var(--primary); margin-bottom:0.75rem; }
+.pom-ring { width:160px; height:160px; margin:0 auto 0.75rem; position:relative; }
+.pom-ring svg { transform:rotate(-90deg); }
+.pom-ring-text { position:absolute; inset:0; display:flex; align-items:center; justify-content:center; flex-direction:column; pointer-events:none; }
+.pom-time { font-size:2.6rem; font-weight:800; color:var(--text); letter-spacing:-0.02em; line-height:1; font-variant-numeric:tabular-nums; }
+.pom-session-label { font-size:0.68rem; color:var(--muted); margin-top:0.2rem; }
+.pom-dots { display:flex; justify-content:center; gap:0.45rem; margin-bottom:0.85rem; }
+.pom-dot { width:10px; height:10px; border-radius:50%; background:var(--border); }
+.pom-dot.done { background:var(--primary); }
+.pom-controls { display:flex; gap:0.6rem; justify-content:center; margin-bottom:1rem; }
+.pom-btn { padding:0.6rem 1.25rem; border-radius:20px; border:none; font-size:0.85rem; font-weight:700; cursor:pointer; }
+.pom-btn.start { background:var(--primary); color:white; }
+.pom-btn.pause { background:var(--warning); color:white; }
+.pom-btn.skip  { background:#f0f0f0; color:var(--muted); }
+.pom-log-item { display:flex; justify-content:space-between; align-items:center; padding:0.4rem 0; border-bottom:1px solid var(--border); font-size:0.75rem; }
+
+/* ═══ LEITURAS ═══ */
+.reading-disc-group { margin-bottom:1.25rem; }
+.reading-disc-title { font-size:0.72rem; font-weight:700; text-transform:uppercase; letter-spacing:0.08em; margin-bottom:0.5rem; }
+.reading-prog-row { display:flex; align-items:center; gap:0.6rem; margin-bottom:0.65rem; }
+.reading-prog-bar { flex:1; height:5px; background:var(--primary-light); border-radius:3px; overflow:hidden; }
+.reading-prog-fill { height:100%; border-radius:3px; transition:width 0.4s; }
+.reading-prog-pct { font-size:0.7rem; font-weight:700; min-width:30px; text-align:right; }
+.reading-item { display:flex; align-items:center; gap:0.65rem; padding:0.55rem 0.75rem; background:var(--primary-ultra); border-radius:var(--radius-sm); margin-bottom:0.35rem; }
+.reading-check { width:20px; height:20px; border-radius:4px; border:2px solid; cursor:pointer; flex-shrink:0; display:flex; align-items:center; justify-content:center; background:white; transition:all 0.15s; }
+.reading-check.checked { color:white; }
+.reading-check.checked::after { content:'✓'; font-size:0.7rem; font-weight:700; }
+.reading-title { flex:1; font-size:0.82rem; }
+.reading-title.done { text-decoration:line-through; color:var(--muted); }
+.reading-pages { font-size:0.68rem; color:var(--muted); white-space:nowrap; }
+.reading-del { background:none; border:none; color:var(--muted); cursor:pointer; font-size:0.85rem; }
+
+/* ═══ FLASHCARDS ═══ */
+.fc-study-area { text-align:center; }
+.fc-card-wrap { perspective:1000px; height:180px; margin:0 auto 0.75rem; cursor:pointer; max-width:340px; }
+.fc-card-inner { position:relative; width:100%; height:100%; transition:transform 0.4s; transform-style:preserve-3d; }
+.fc-card-wrap.flipped .fc-card-inner { transform:rotateY(180deg); }
+.fc-front, .fc-back { position:absolute; inset:0; backface-visibility:hidden; border-radius:var(--radius); display:flex; align-items:center; justify-content:center; padding:1.25rem; font-size:0.9rem; font-weight:500; text-align:center; box-shadow:var(--shadow); }
+.fc-front { background:white; border:2px solid var(--primary-light); color:var(--text); }
+.fc-back { background:linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%); color:white; transform:rotateY(180deg); }
+.fc-hint { font-size:0.68rem; color:var(--muted); margin-bottom:0.75rem; }
+.fc-ratings { display:flex; gap:0.5rem; justify-content:center; margin-bottom:0.75rem; }
+.fc-rate-btn { flex:1; max-width:100px; padding:0.5rem; border-radius:8px; border:none; font-size:0.75rem; font-weight:700; cursor:pointer; }
+.fc-rate-btn.easy  { background:#E8F8EF; color:var(--success); border:1.5px solid var(--success); }
+.fc-rate-btn.hard  { background:#FFF8E0; color:var(--warning); border:1.5px solid var(--warning); }
+.fc-rate-btn.wrong { background:#FFF0F0; color:var(--danger);  border:1.5px solid var(--danger); }
+.fc-progress { font-size:0.7rem; color:var(--muted); text-align:center; margin-bottom:0.75rem; }
+.fc-list-item { padding:0.65rem 0.9rem; background:var(--primary-ultra); border-radius:var(--radius-sm); margin-bottom:0.4rem; border-left:3px solid; display:flex; justify-content:space-between; align-items:flex-start; }
+.fc-list-front { font-size:0.82rem; font-weight:600; }
+.fc-list-back { font-size:0.75rem; color:var(--muted); margin-top:0.15rem; }
+.fc-list-del { background:none; border:none; color:var(--muted); cursor:pointer; flex-shrink:0; }
+.fc-empty { text-align:center; padding:2rem 1rem; }
+.fc-empty-icon { font-size:2.5rem; margin-bottom:0.5rem; }
+.fc-tab-btns { display:flex; gap:0.4rem; margin-bottom:1rem; }
+.fc-tab { flex:1; padding:0.45rem; border-radius:6px; border:1.5px solid var(--border); background:white; font-size:0.75rem; font-weight:600; color:var(--muted); cursor:pointer; }
+.fc-tab.active { background:var(--primary); color:white; border-color:var(--primary); }
+
+/* ═══ PERIOD SELECTOR ═══ */
+.period-bar { background: rgba(0,0,0,0.18); display:flex; align-items:center; gap:0.5rem; padding:0.4rem 1.25rem; overflow-x:auto; scrollbar-width:none; }
+.period-bar::-webkit-scrollbar { display:none; }
+.period-chip { flex-shrink:0; font-size:0.65rem; font-weight:700; padding:0.22rem 0.65rem; border-radius:20px; border:1.5px solid rgba(255,255,255,0.35); color:rgba(255,255,255,0.75); cursor:pointer; background:transparent; white-space:nowrap; transition:all 0.15s; }
+.period-chip.active { background:white; color:var(--primary); border-color:white; }
+.period-chip:hover { background:rgba(255,255,255,0.18); }
+.period-label { font-size:0.62rem; color:rgba(255,255,255,0.6); white-space:nowrap; }
+
+/* ═══ BOLETIM ═══ */
+.bol-subject { border-radius:var(--radius-sm); margin-bottom:0.9rem; overflow:hidden; border:1px solid var(--border); }
+.bol-subject-header { display:flex; align-items:center; justify-content:space-between; padding:0.7rem 1rem; color:white; }
+.bol-subject-name { font-size:0.88rem; font-weight:700; }
+.bol-media-badge { font-size:0.82rem; font-weight:800; background:rgba(255,255,255,0.2); padding:0.2rem 0.6rem; border-radius:20px; }
+.bol-subject-body { padding:0.75rem 1rem; background:var(--surface); }
+.bol-eval-row { display:flex; align-items:center; gap:0.6rem; margin-bottom:0.5rem; }
+.bol-eval-name { font-size:0.75rem; font-weight:600; min-width:100px; color:var(--muted); }
+.bol-grade-input { width:60px; border:1.5px solid var(--border); border-radius:6px; padding:0.3rem 0.4rem; font-size:0.82rem; font-weight:700; text-align:center; }
+.bol-grade-input:focus { outline:none; border-color:var(--primary); }
+.bol-grade-max { font-size:0.68rem; color:var(--muted); }
+.bol-weight { font-size:0.65rem; background:var(--bg); border-radius:4px; padding:0.15rem 0.4rem; color:var(--muted); }
+.bol-status { display:inline-block; font-size:0.68rem; font-weight:700; padding:0.2rem 0.6rem; border-radius:20px; margin-top:0.5rem; }
+.bol-status.ok      { background:#E8F8EF; color:var(--success); }
+.bol-status.risco   { background:#FFF8E0; color:var(--warning); }
+.bol-status.reprov  { background:#FFF0F0; color:var(--danger); }
+.bol-status.final   { background:#F0F0FF; color:#5050C0; }
+.bol-precisa { font-size:0.7rem; color:var(--muted); margin-top:0.25rem; }
+.bol-summary { display:grid; grid-template-columns:1fr 1fr 1fr; gap:0.6rem; margin-bottom:1rem; }
+.bol-sum-box { background:var(--primary-ultra); border-radius:var(--radius-sm); padding:0.7rem; text-align:center; }
+.bol-sum-num { font-size:1.3rem; font-weight:800; color:var(--primary); }
+.bol-sum-label { font-size:0.62rem; color:var(--muted); }
+
+/* ═══ ENTREGAS ═══ */
+.entrega-item { padding:0.75rem 0.9rem; border-radius:var(--radius-sm); margin-bottom:0.5rem; border-left:4px solid; position:relative; }
+.entrega-item.pendente  { background:#FFF8EC; }
+.entrega-item.concluida { background:#F0FFF5; opacity:0.7; }
+.entrega-item.atrasada  { background:#FFF0F0; }
+.entrega-top { display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:0.3rem; }
+.entrega-titulo { font-size:0.85rem; font-weight:700; flex:1; }
+.entrega-titulo.done { text-decoration:line-through; color:var(--muted); }
+.entrega-type-badge { font-size:0.62rem; font-weight:700; padding:0.15rem 0.5rem; border-radius:4px; color:white; white-space:nowrap; margin-left:0.4rem; }
+.entrega-meta { display:flex; align-items:center; gap:0.6rem; flex-wrap:wrap; }
+.entrega-disc { font-size:0.7rem; font-weight:600; }
+.entrega-date { font-size:0.7rem; color:var(--muted); }
+.entrega-countdown { font-size:0.7rem; font-weight:700; }
+.entrega-countdown.urgente { color:var(--danger); }
+.entrega-countdown.ok      { color:var(--success); }
+.entrega-note { font-size:0.73rem; color:var(--muted); font-style:italic; margin-top:0.3rem; }
+.entrega-actions { display:flex; gap:0.4rem; margin-top:0.5rem; }
+.entrega-btn { font-size:0.7rem; font-weight:600; padding:0.22rem 0.6rem; border-radius:20px; border:none; cursor:pointer; }
+.entrega-btn.done  { background:var(--success); color:white; }
+.entrega-btn.undone { background:#f0f0f0; color:var(--muted); }
+.entrega-btn.del    { background:#fff0f0; color:var(--danger); }
+.filter-row { display:flex; gap:0.4rem; flex-wrap:wrap; margin-bottom:1rem; }
+.filter-pill { font-size:0.7rem; font-weight:600; padding:0.25rem 0.7rem; border-radius:20px; border:1.5px solid var(--border); background:white; color:var(--muted); cursor:pointer; }
+.filter-pill.active { background:var(--primary); color:white; border-color:var(--primary); }
+
+/* ═══ DISCIPLINAS EDITOR ═══ */
+.disc-edit-item { display:flex; align-items:center; gap:0.65rem; padding:0.6rem 0.75rem; background:var(--primary-ultra); border-radius:var(--radius-sm); margin-bottom:0.4rem; border-left:4px solid; }
+.disc-edit-color { width:14px; height:14px; border-radius:50%; flex-shrink:0; }
+.disc-edit-name { flex:1; font-size:0.83rem; font-weight:600; }
+.disc-edit-day { font-size:0.68rem; color:var(--muted); white-space:nowrap; }
+.disc-edit-del { background:none; border:none; color:var(--muted); cursor:pointer; font-size:0.85rem; }
+.color-picker-row { display:flex; gap:0.4rem; flex-wrap:wrap; margin:0.4rem 0; }
+.color-swatch { width:24px; height:24px; border-radius:50%; cursor:pointer; border:2px solid transparent; transition:all 0.15s; }
+.color-swatch.selected { border-color: var(--text); transform: scale(1.15); }
+
+.cf-field{display:flex;align-items:center;justify-content:space-between;gap:.5rem;margin-bottom:.5rem;font-size:.8rem}
+.cf-field .form-input,.cf-field .form-select{flex:none;width:120px;text-align:center}
+details{margin-bottom:.6rem}summary{cursor:pointer;font-weight:700;font-size:.85rem;padding:.6rem .8rem;background:var(--primary-ultra);border-radius:8px;margin-bottom:.5rem}
+.cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:3px;margin-bottom:3px}
+.cal-dow{font-size:.6rem;font-weight:700;color:var(--muted);text-align:center;padding:.2rem 0}
+.cal-cell{aspect-ratio:1/1.05;border-radius:8px;background:var(--primary-ultra);border:1.5px solid transparent;display:flex;flex-direction:column;align-items:center;padding:.25rem 0;font-size:.75rem;font-weight:600;cursor:pointer}
+.cal-cell.out{opacity:.35}
+.cal-cell.today{border-color:var(--primary)}
+.cal-cell.sel{background:var(--primary);color:#fff}
+.cal-dots{display:flex;gap:2px;margin-top:3px;flex-wrap:wrap;justify-content:center;padding:0 2px}
+.cal-dot{width:6px;height:6px;border-radius:50%;display:inline-block}
+.cal-legend{display:flex;flex-wrap:wrap;gap:.6rem;margin:.75rem 0}
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<header class="app-header">
+  <div>
+    <h1>⚖️ Planner Jurídico</h1>
+    <p>2º Período · Afya Unigranrio · 27/07 – 14/12/2026</p>
+  </div>
+  <button class="btn-print" onclick="window.print()">🖨️ Imprimir</button>
+</header>
+
+<div id="pj-banner" style="display:none;background:#FFF8E0;border-bottom:1px solid #F0D6A0;color:#6B4E00;font-size:.74rem;line-height:1.45;padding:.6rem 1rem"></div>
+
+<!-- PERIOD BAR -->
+<div class="period-bar" id="period-bar">
+  <span class="period-label">Período:</span>
+</div>
+
+<!-- PAGES -->
+
+<!-- ══ INÍCIO ══ -->
+<div id="page-inicio" class="page active">
+  <div class="card">
+    <div class="welcome-top">
+      <div>
+        <div class="welcome-name">Olá, Alexandra! 🌸</div>
+        <div class="welcome-date" id="today-label"></div>
+      </div>
+      <div style="text-align:right">
+        <div class="welcome-pct" id="sem-pct">0%</div>
+        <div class="welcome-pct-label">semestre</div>
+      </div>
+    </div>
+    <div class="progress-bar-wrap">
+      <div class="progress-track"><div class="progress-fill" id="sem-bar" style="width:0%"></div></div>
+      <div class="progress-dates">
+        <span>27/07/2026</span>
+        <span class="progress-week" id="sem-week">Semana 1/21</span>
+        <span>14/12/2026</span>
+      </div>
+    </div>
+    <div class="stats-row">
+      <div class="stat-box">
+        <div class="stat-num" id="stat-rev">0</div>
+        <div class="stat-label">Revisões hoje</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-num" id="stat-tasks">0/0</div>
+        <div class="stat-label">Tarefas hoje</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-num">6</div>
+        <div class="stat-label">Disciplinas</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card" id="dash-quick-card">
+    <div class="card-title">🔎 Visão rápida</div>
+    <div id="dash-quick"></div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">📚 Sugestões para Hoje</div>
+    <div id="suggestions-list"></div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">📊 Progresso do Semestre</div>
+    <div id="home-progress"></div>
+  </div>
+
+  <div class="card" id="exams-alert" style="display:none">
+    <div class="card-title">⚠️ Próximas Avaliações</div>
+    <div id="upcoming-exams-list"></div>
+  </div>
+</div>
+
+<!-- ══ HOJE ══ -->
+<div id="page-hoje" class="page">
+  <div class="card">
+    <div class="card-title">✅ Checklist Diário</div>
+    <div class="section-label">Data</div>
+    <input type="date" class="date-input" id="task-date">
+    <div id="task-list"><div class="empty-state">Nenhuma tarefa para esta data.</div></div>
+
+    <div class="add-box" style="margin-top:0.75rem">
+      <div class="add-box-title">+ Adicionar Tarefa</div>
+      <input type="text" class="form-input" id="task-desc" placeholder="Descrição da tarefa" style="width:100%; margin-bottom:0.5rem">
+      <div class="form-row">
+        <select class="form-select" id="task-subject">
+          <option value="TGP">TGP</option>
+          <option value="D. Const.">D. Const.</option>
+          <option value="D. Civil">D. Civil</option>
+          <option value="D. Penal">D. Penal</option>
+          <option value="Hist.">Hist.</option>
+          <option value="Extensão">Extensão</option>
+        </select>
+        <select class="form-select" id="task-type">
+          <option value="Leitura">Leitura</option>
+          <option value="Questões">Questões</option>
+          <option value="Resumo">Resumo</option>
+          <option value="Revisão">Revisão</option>
+          <option value="Mapa Mental">Mapa Mental</option>
+          <option value="Flashcards">Flashcards</option>
+          <option value="EAD">EAD</option>
+        </select>
+        <input type="number" class="form-input" id="task-duration" placeholder="min" value="30" style="width:65px; flex:none">
+      </div>
+      <button class="btn-primary" onclick="addTask()">Adicionar</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══ PROGRESSO ══ -->
+<div id="page-progresso" class="page">
+  <div class="card">
+    <div class="card-title">📈 Painel de Progresso</div>
+    <div class="prog-totals">
+      <div class="prog-box">
+        <div class="prog-box-num" id="total-sessions">0</div>
+        <div class="prog-box-label">Sessões totais</div>
+      </div>
+      <div class="prog-box">
+        <div class="prog-box-num" id="total-hours">0.0h</div>
+        <div class="prog-box-label">Horas estudadas</div>
+      </div>
+    </div>
+    <div class="prog-meta">Meta de referência: 600 min (10h) por disciplina</div>
+    <div id="disc-progress-list"></div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">🎯 Contador de Questões</div>
+    <div id="question-counter-list"></div>
+  </div>
+</div>
+
+<!-- ══ REVISÕES ══ -->
+<div id="page-revisoes" class="page">
+  <div class="card">
+    <div class="card-title">🔄 Controle de Revisões</div>
+    <div class="rev-cycle">
+      Repetição espaçada: <span>24h →</span><span>7 dias →</span><span>30 dias →</span><span>✅ Consolidado</span>
+    </div>
+
+    <div class="add-box">
+      <div class="add-box-title">+ Novo tópico para revisar</div>
+      <input type="text" class="form-input" id="rev-topic" placeholder="Ex.: Princípio da isonomia" style="width:100%; margin-bottom:0.5rem">
+      <div class="form-row">
+        <select class="form-select" id="rev-subject">
+          <option value="TGP">TGP</option>
+          <option value="D. Const.">D. Const.</option>
+          <option value="D. Civil">D. Civil</option>
+          <option value="D. Penal">D. Penal</option>
+          <option value="Hist.">Hist.</option>
+          <option value="Extensão">Extensão</option>
+        </select>
+        <button class="btn-primary" style="margin-top:0" onclick="addRevision()">Adicionar</button>
+      </div>
+    </div>
+    <div class="divider"></div>
+    <div id="revision-list"><div class="empty-state">Nenhum tópico adicionado ainda.</div></div>
+  </div>
+</div>
+
+<!-- ══ NOTAS ══ -->
+<div id="page-notas" class="page">
+  <div class="card">
+    <div class="card-title">📝 Notas Semanais</div>
+    <div class="section-label">Semana</div>
+    <select class="form-select" id="notes-week" style="width:100%; margin-bottom:1rem" onchange="loadNotes()"></select>
+    <textarea class="notes-textarea" id="notes-text" placeholder="Anote resumos, jurisprudências, dúvidas e referências úteis..." oninput="saveNotes()"></textarea>
+    <div class="flex-between mt-sm">
+      <span class="notes-saved" id="notes-saved-msg"></span>
+      <span class="notes-count" id="notes-word-count">0 palavras</span>
+    </div>
+  </div>
+</div>
+
+<!-- ══ METAS ══ -->
+<div id="page-metas" class="page">
+  <div class="card">
+    <div class="card-title">🎯 Metas Semanais</div>
+    <div class="section-label">Semana</div>
+    <select class="form-select" id="goals-week" style="width:100%; margin-bottom:1rem" onchange="loadGoals()"></select>
+    <div id="goals-list"><div class="empty-state">Nenhuma meta definida para esta semana.</div></div>
+
+    <div class="add-box" style="margin-top:0.75rem">
+      <div class="add-box-title">+ Nova Meta</div>
+      <input type="text" class="form-input" id="goal-input" placeholder="Ex.: Resolver 20 questões de concurso" style="width:100%; margin-bottom:0.5rem">
+      <button class="btn-primary" onclick="addGoal()">Adicionar Meta</button>
+    </div>
+
+    <div class="divider"></div>
+    <div class="section-label">Sugestões rápidas</div>
+    <div class="quick-suggestions">
+      <span class="quick-pill" onclick="setQuickGoal(this)">Ler um capítulo de doutrina por disciplina</span>
+      <span class="quick-pill" onclick="setQuickGoal(this)">Resolver 20 questões de concurso</span>
+      <span class="quick-pill" onclick="setQuickGoal(this)">Elaborar resumo de Direito Civil</span>
+      <span class="quick-pill" onclick="setQuickGoal(this)">Atualizar flashcards de Constitucional</span>
+      <span class="quick-pill" onclick="setQuickGoal(this)">Completar módulo EAD – História do Direito</span>
+      <span class="quick-pill" onclick="setQuickGoal(this)">Fazer mapa mental de Direito Penal</span>
+      <span class="quick-pill" onclick="setQuickGoal(this)">Revisar tópicos com erros da última prova</span>
+      <span class="quick-pill" onclick="setQuickGoal(this)">Cadastrar 5 termos jurídicos novos</span>
+    </div>
+  </div>
+</div>
+
+<!-- ══ CRONOGRAMA ══ -->
+<div id="page-cronograma" class="page">
+  <div class="card">
+    <div class="card-title">📅 Grade Semanal Fixa</div>
+    <div class="schedule-legend">
+      <div class="legend-item"><div class="legend-dot" style="background:var(--c-tgp)"></div>TGP</div>
+      <div class="legend-item"><div class="legend-dot" style="background:var(--c-const)"></div>D. Const.</div>
+      <div class="legend-item"><div class="legend-dot" style="background:var(--c-civil)"></div>D. Civil</div>
+      <div class="legend-item"><div class="legend-dot" style="background:var(--c-penal)"></div>D. Penal</div>
+      <div class="legend-item"><div class="legend-dot" style="background:var(--c-hist)"></div>Hist.</div>
+      <div class="legend-item"><div class="legend-dot" style="background:var(--c-ext)"></div>Extensão</div>
+    </div>
+    <div id="schedule-list"></div>
+  </div>
+</div>
+
+<!-- ══ AVALIAÇÕES ══ -->
+<div id="page-avaliacoes" class="page">
+  <div class="card">
+    <div class="card-title">📋 Rastreador de Avaliações</div>
+    <div id="exam-list"><div class="empty-state">Nenhuma avaliação cadastrada.</div></div>
+
+    <div class="add-box" style="margin-top:0.75rem">
+      <div class="add-box-title">+ Nova Avaliação</div>
+      <input type="text" class="form-input" id="exam-name" placeholder="Nome (ex.: N1, Checkpoint, Prova Final)" style="width:100%; margin-bottom:0.5rem">
+      <div class="form-row">
+        <select class="form-select" id="exam-subject">
+          <option value="TGP">TGP</option>
+          <option value="D. Const.">D. Const.</option>
+          <option value="D. Civil">D. Civil</option>
+          <option value="D. Penal">D. Penal</option>
+          <option value="Hist.">Hist.</option>
+          <option value="Extensão">Extensão</option>
+          <option value="Todas">Todas</option>
+        </select>
+        <input type="date" class="form-input date-input" id="exam-date" style="flex:1">
+      </div>
+      <input type="text" class="form-input" id="exam-note" placeholder="Observação (opcional)" style="width:100%; margin-bottom:0.5rem; margin-top:0.5rem">
+      <button class="btn-primary" onclick="addExam()">Adicionar</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══ ERROS ══ -->
+<div id="page-erros" class="page">
+  <div class="card">
+    <div class="card-title">❌ Diário de Erros</div>
+    <div id="error-list"><div class="empty-state">Nenhum erro registrado. Ótimo!</div></div>
+
+    <div class="add-box" style="margin-top:0.75rem">
+      <div class="add-box-title">+ Registrar Erro</div>
+      <select class="form-select" id="err-subject" style="width:100%; margin-bottom:0.5rem">
+        <option value="TGP">TGP</option>
+        <option value="D. Const.">D. Const.</option>
+        <option value="D. Civil">D. Civil</option>
+        <option value="D. Penal">D. Penal</option>
+        <option value="Hist.">Hist.</option>
+        <option value="Extensão">Extensão</option>
+      </select>
+      <textarea class="form-input" id="err-question" placeholder="Enunciado / O que foi cobrado" style="width:100%; min-height:65px; margin-bottom:0.5rem; resize:vertical"></textarea>
+      <input type="text" class="form-input" id="err-my" placeholder="Minha resposta (errada)" style="width:100%; margin-bottom:0.5rem">
+      <input type="text" class="form-input" id="err-correct" placeholder="Resposta correta" style="width:100%; margin-bottom:0.5rem">
+      <input type="text" class="form-input" id="err-reason" placeholder="Por que errei? (reflexão)" style="width:100%; margin-bottom:0.5rem">
+      <button class="btn-primary" onclick="addError()">Registrar</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══ TERMOS ══ -->
+<div id="page-termos" class="page">
+  <div class="card">
+    <div class="card-title">⚖️ Banco de Termos Jurídicos</div>
+    <input type="text" class="search-bar" id="term-search" placeholder="🔍 Buscar termo..." oninput="filterTerms()">
+    <div id="term-list"><div class="empty-state">Nenhum termo cadastrado ainda.</div></div>
+
+    <div class="add-box" style="margin-top:0.75rem">
+      <div class="add-box-title">+ Novo Termo</div>
+      <input type="text" class="form-input" id="term-word" placeholder="Termo jurídico" style="width:100%; margin-bottom:0.5rem">
+      <input type="text" class="form-input" id="term-etym" placeholder="Etimologia (ex.: do latim stare decisis)" style="width:100%; margin-bottom:0.5rem">
+      <textarea class="form-input" id="term-def" placeholder="Definição jurídica" style="width:100%; min-height:70px; resize:vertical; margin-bottom:0.5rem"></textarea>
+      <textarea class="form-input" id="term-ex" placeholder="Exemplo de uso em contexto jurídico" style="width:100%; min-height:55px; resize:vertical; margin-bottom:0.5rem"></textarea>
+      <button class="btn-primary" onclick="addTerm()">Adicionar Termo</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══ CALENDÁRIO ══ -->
+<div id="page-calendario" class="page">
+ <div class="card">
+  <div class="card-title">📆 Calendário acadêmico</div>
+  <div class="flex-between" style="margin-bottom:.75rem">
+   <button class="rev-btn del" style="font-size:1rem;padding:.3rem .9rem" onclick="calNav(-1)">‹</button>
+   <b id="cal-title" style="color:var(--primary)"></b>
+   <button class="rev-btn del" style="font-size:1rem;padding:.3rem .9rem" onclick="calNav(1)">›</button>
+  </div>
+  <div class="cal-grid" id="cal-head"></div>
+  <div class="cal-grid" id="cal-grid"></div>
+  <div class="cal-legend" id="cal-legend"></div>
+  <button class="rev-btn advance" onclick="calToday()">Ir para hoje</button>
+ </div>
+ <div class="card">
+  <div class="card-title" id="cal-day-title"></div>
+  <div id="cal-day-list"></div>
+  <div class="add-box">
+   <div class="add-box-title" id="cal-form-title">+ Novo evento</div>
+   <input class="form-input" id="ev-title" placeholder="Título (ex.: Prova de TGP)" style="width:100%;margin-bottom:.5rem">
+   <div class="form-row"><select class="form-select" id="ev-type"></select><select class="form-select" id="ev-subj"></select></div>
+   <div class="form-row" style="margin-top:.5rem"><input type="date" class="form-input" id="ev-date"><input type="time" class="form-input" id="ev-time" style="max-width:120px"></div>
+   <input class="form-input" id="ev-note" placeholder="Observações (opcional)" style="width:100%;margin:.5rem 0">
+   <button class="btn-primary" id="ev-save" onclick="saveEvent()">Adicionar evento</button>
+   <button class="btn-primary" id="ev-cancel" style="display:none;margin-top:.5rem;background:var(--muted)" onclick="cancelEdit()">Cancelar edição</button>
+  </div>
+ </div>
+</div>
+
+<!-- ══ GRADUAÇÃO ══ -->
+<div id="page-grad" class="page">
+ <div class="card"><div class="card-title">🎓 Minha Graduação</div>
+  <div class="bol-summary" style="grid-template-columns:1fr 1fr"><div class="bol-sum-box"><div class="bol-sum-num" id="grad-cr">–</div><div class="bol-sum-label">Coeficiente de rendimento</div></div><div class="bol-sum-box"><div class="bol-sum-num" id="compl-total">0h</div><div class="bol-sum-label">Horas complementares</div></div></div>
+  <div id="grad-list"></div></div>
+ <div class="card"><div class="card-title">🏅 Atividades complementares</div><div id="compl-list"></div>
+  <div class="add-box"><input class="form-input" id="cm-name" placeholder="Atividade" style="width:100%;margin-bottom:.5rem"><div class="form-row"><input type="date" class="form-input" id="cm-date"><input type="number" class="form-input" id="cm-h" placeholder="horas" style="max-width:80px"></div><button class="btn-primary" onclick="addCompl()">Adicionar</button></div></div>
+</div>
+
+<!-- ══ CONFIG ══ -->
+<div id="page-config" class="page">
+ <div class="card"><div class="card-title">⚙️ Configurações</div>
+  <div class="section-label">Dados acadêmicos</div>
+  <input class="form-input" id="cf-name" placeholder="Nome" style="width:100%;margin-bottom:.5rem">
+  <div class="form-row"><input class="form-input" id="cf-inst" placeholder="Instituição"><input class="form-input" id="cf-course" placeholder="Curso"></div>
+  <input class="form-input" id="cf-campus" placeholder="Campus" style="width:100%;margin:.5rem 0">
+  <div class="section-label">Regras de avaliação (ajuste se o regulamento mudar)</div>
+  <label class="cf-field">Pontuação total<input type="number" class="form-input" id="cf-max"></label>
+  <label class="cf-field">Mínimo p/ aprovação direta<input type="number" class="form-input" id="cf-pass"></label>
+  <label class="cf-field">Frequência mínima (%)<input type="number" class="form-input" id="cf-freq"></label>
+  <label class="cf-field">Exame Final — máximo<input type="number" class="form-input" id="cf-exmax"></label>
+  <label class="cf-field">Exame Final — mínimo p/ aprovar<input type="number" class="form-input" id="cf-expass"></label>
+  <label class="cf-field">Como o Exame entra<select class="form-select" id="cf-exmode"><option value="replace">Substitui a soma</option><option value="avg">Média com a soma</option></select></label>
+  <button class="btn-primary" onclick="saveConfig()">Salvar</button>
+ </div>
+ <div class="card"><div class="card-title">🧮 Componentes da nota</div>
+  <div id="cf-comps"></div><div id="cf-total" class="text-muted" style="margin:.5rem 0"></div>
+  <div class="add-box"><div class="form-row"><input class="form-input" id="cf-cunit" placeholder="Etapa (N1)" style="max-width:90px"><input class="form-input" id="cf-cname" placeholder="Nome (TA, Prova…)"><input type="number" class="form-input" id="cf-cmax" placeholder="pts" style="max-width:70px"></div><button class="btn-primary" onclick="addComp()">Adicionar componente</button></div>
+ </div>
+ <div class="card"><div class="card-title">💾 Backup</div>
+  <p class="text-muted" style="font-size:.78rem;margin-bottom:.5rem">Os dados ficam apenas neste navegador. Limpar os dados do navegador ou trocar de aparelho os apaga. Exporte um backup com frequência.</p>
+  <div id="cf-last" class="text-muted" style="margin-bottom:.5rem"></div>
+  <button class="btn-primary" onclick="exportBackup()">Exportar backup</button>
+  <label class="btn-primary" style="display:block;text-align:center;margin-top:.5rem;cursor:pointer">Importar backup<input type="file" accept=".json,application/json" style="display:none" onchange="importBackup(this)"></label>
+  <button class="btn-primary" style="margin-top:.5rem;background:var(--muted)" onclick="copyBackup()">Copiar backup (texto)</button>
+  <div id="cf-snaps"></div>
+ </div>
+</div>
+<div id="page-disc" class="page"><div id="disc-detail"></div></div>
+
+<!-- ══ BOLETIM ══ -->
+<div id="page-boletim" class="page">
+  <div class="card">
+    <div class="card-title">📊 Boletim de Notas</div>
+    <div class="bol-summary">
+      <div class="bol-sum-box"><div class="bol-sum-num" id="bol-aprovadas">0</div><div class="bol-sum-label">Aprovadas</div></div>
+      <div class="bol-sum-box"><div class="bol-sum-num" id="bol-risco">0</div><div class="bol-sum-label">Em risco</div></div>
+      <div class="bol-sum-box"><div class="bol-sum-num" id="bol-media-geral">–</div><div class="bol-sum-label">Média geral</div></div>
+    </div>
+    <div id="bol-perf"></div>
+    <div id="boletim-list"></div>
+  </div>
+</div>
+
+<!-- ══ ENTREGAS ══ -->
+<div id="page-entregas" class="page">
+  <div class="card">
+    <div class="card-title">📌 Entregas e Trabalhos</div>
+    <div class="filter-row">
+      <button class="filter-pill active" id="ef-all"       onclick="setEntregaFilter('all',this)">Todas</button>
+      <button class="filter-pill"        id="ef-pendente"  onclick="setEntregaFilter('pendente',this)">Pendentes</button>
+      <button class="filter-pill"        id="ef-urgente"   onclick="setEntregaFilter('urgente',this)">Urgentes (≤3d)</button>
+      <button class="filter-pill"        id="ef-concluida" onclick="setEntregaFilter('concluida',this)">Concluídas</button>
+    </div>
+    <div id="entrega-list"><div class="empty-state">Nenhuma entrega cadastrada.</div></div>
+    <div class="add-box" style="margin-top:0.75rem">
+      <div class="add-box-title">+ Nova Entrega / Trabalho</div>
+      <input type="text" class="form-input" id="ent-title" placeholder="Título (ex.: Trabalho de Constitucional)" style="width:100%; margin-bottom:0.5rem">
+      <div class="form-row">
+        <select class="form-select" id="ent-subject"></select>
+        <select class="form-select" id="ent-type">
+          <option value="Trabalho">Trabalho</option>
+          <option value="Seminário">Seminário</option>
+          <option value="Resumo">Resumo</option>
+          <option value="Projeto">Projeto</option>
+          <option value="Fichamento">Fichamento</option>
+          <option value="Apresentação">Apresentação</option>
+          <option value="Outro">Outro</option>
+        </select>
+      </div>
+      <div class="form-row" style="margin-top:0.5rem">
+        <div style="flex:1">
+          <div class="section-label">Data de entrega</div>
+          <input type="date" class="form-input date-input" id="ent-date" style="width:100%">
+        </div>
+        <div style="flex:1">
+          <div class="section-label">Peso/nota máx.</div>
+          <input type="number" class="form-input" id="ent-weight" placeholder="10" style="width:100%">
+        </div>
+      </div>
+      <input type="text" class="form-input" id="ent-note" placeholder="Observações (ex.: ABNT, 10 páginas)" style="width:100%; margin:0.5rem 0">
+      <button class="btn-primary" onclick="addEntrega()">Adicionar Entrega</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══ DISCIPLINAS ══ -->
+<div id="page-disciplinas" class="page">
+  <div class="card">
+    <div class="card-title">🗂 Períodos</div>
+    <p class="text-muted" style="margin-bottom:.75rem;font-size:.78rem">Crie e edite períodos. Arquivar um período não apaga nada: os dados continuam salvos.</p>
+    <div id="per-list"></div>
+    <div class="add-box" style="margin-top:.75rem">
+      <div class="add-box-title" id="per-form-title">+ Novo período</div>
+      <div class="form-row"><input class="form-input" id="per-name" placeholder="Nome (ex.: 3º período)" style="flex:2"><input class="form-input" id="per-label" placeholder="Identificação (ex.: 2027/1)" style="flex:1"></div>
+      <button class="btn-primary" id="per-save" style="margin-top:.5rem" onclick="savePeriod()">Criar período</button>
+      <button class="btn-primary" id="per-cancel" style="display:none;margin-top:.5rem;background:var(--muted)" onclick="cancelPeriodEdit()">Cancelar edição</button>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-title">📚 Disciplinas — <span id="disc-period-name"></span></div>
+    <div id="disc-edit-list"></div>
+    <label class="cf-field" style="margin-top:.5rem">Mostrar arquivadas<input type="checkbox" id="disc-show-arch" onchange="renderDisciplinas()" style="width:auto"></label>
+    <div class="add-box" style="margin-top:.75rem">
+      <div class="add-box-title" id="de-form-title">+ Nova Disciplina</div>
+      <div class="form-row">
+        <input type="text" class="form-input" id="de-name" placeholder="Nome completo" style="flex:2">
+        <input type="text" class="form-input" id="de-abbrev" placeholder="Sigla (opcional)" style="flex:1;max-width:100px">
+      </div>
+      <div class="form-row" style="margin-top:.5rem">
+        <input type="text" class="form-input" id="de-day" placeholder="Dia da semana (ex.: Segunda)" style="flex:1">
+        <input type="text" class="form-input" id="de-time" placeholder="Horário" style="flex:1">
+      </div>
+      <input type="text" class="form-input" id="de-prof" placeholder="Professor(a)" style="width:100%;margin:.5rem 0">
+      <textarea class="form-input" id="de-obs" placeholder="Observações acadêmicas (opcional)" style="width:100%;min-height:60px;resize:vertical;margin-bottom:.5rem"></textarea>
+      <div class="section-label">Cor</div>
+      <div class="color-picker-row" id="de-color-row"></div>
+      <input type="hidden" id="de-color-val" value="#7B5EA7">
+      <button class="btn-primary" id="de-save" onclick="saveDisc()">Adicionar Disciplina</button>
+      <button class="btn-primary" id="de-cancel" style="display:none;margin-top:.5rem;background:var(--muted)" onclick="cancelDiscEdit()">Cancelar edição</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══ FALTAS ══ -->
+<div id="page-faltas" class="page">
+  <div class="card">
+    <div class="card-title">🗓 Controle de Faltas</div>
+    <p class="text-muted" style="margin-bottom:1rem; font-size:0.78rem">A lei exige <strong>75% de presença</strong>. Registre cada aula para acompanhar seu saldo de faltas por disciplina.</p>
+    <div id="falta-disc-list"></div>
+  </div>
+  <div class="card">
+    <div class="card-title">📋 Histórico por Disciplina</div>
+    <select class="form-select" id="falta-hist-disc" style="width:100%; margin-bottom:0.75rem" onchange="renderFaltaHistory()">
+      <option value="TGP">TGP</option>
+      <option value="D. Const.">D. Const.</option>
+      <option value="D. Civil">D. Civil</option>
+      <option value="D. Penal">D. Penal</option>
+      <option value="Hist.">Hist.</option>
+      <option value="Extensão">Extensão</option>
+    </select>
+    <div id="falta-history-list"></div>
+  </div>
+</div>
+
+<!-- ══ JURISPRUDÊNCIA ══ -->
+<div id="page-juris" class="page">
+  <div class="card">
+    <div class="card-title">📌 Banco de Jurisprudência</div>
+    <input type="text" class="search-bar" id="juris-search" placeholder="🔍 Buscar por tribunal, tema ou número..." oninput="filterJuris()">
+    <div id="juris-list"><div class="empty-state">Nenhuma jurisprudência cadastrada.</div></div>
+    <div class="add-box" style="margin-top:0.75rem">
+      <div class="add-box-title">+ Adicionar Jurisprudência</div>
+      <div class="form-row">
+        <select class="form-select" id="juris-tribunal">
+          <option value="STF">STF</option>
+          <option value="STJ">STJ</option>
+          <option value="TRF">TRF</option>
+          <option value="TST">TST</option>
+          <option value="TJRJ">TJRJ</option>
+        </select>
+        <input type="text" class="form-input" id="juris-num" placeholder="Número/identificação">
+      </div>
+      <select class="form-select" id="juris-subject" style="width:100%; margin:0.5rem 0">
+        <option value="TGP">TGP</option>
+        <option value="D. Const.">D. Const.</option>
+        <option value="D. Civil">D. Civil</option>
+        <option value="D. Penal">D. Penal</option>
+        <option value="Hist.">Hist.</option>
+        <option value="Extensão">Extensão</option>
+      </select>
+      <input type="text" class="form-input" id="juris-tema" placeholder="Tema / assunto" style="width:100%; margin-bottom:0.5rem">
+      <textarea class="form-input" id="juris-ementa" placeholder="Ementa resumida" style="width:100%; min-height:70px; resize:vertical; margin-bottom:0.5rem"></textarea>
+      <textarea class="form-input" id="juris-app" placeholder="Aplicação prática / como usar em prova" style="width:100%; min-height:55px; resize:vertical; margin-bottom:0.5rem"></textarea>
+      <button class="btn-primary" onclick="addJuris()">Adicionar</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══ ESCRITÓRIO ══ -->
+<div id="page-escritorio" class="page">
+  <div class="card">
+    <div class="card-title">🏢 Escritório × Faculdade</div>
+    <p class="text-muted" style="margin-bottom:1rem; font-size:0.78rem">Registre quando um conteúdo da faculdade aparece na prática do escritório. Essa conexão reforça o aprendizado.</p>
+    <div id="esct-list"><div class="empty-state">Nenhuma conexão registrada ainda.</div></div>
+    <div class="add-box" style="margin-top:0.75rem">
+      <div class="add-box-title">+ Nova Conexão</div>
+      <select class="form-select" id="esct-subject" style="width:100%; margin-bottom:0.5rem">
+        <option value="TGP">TGP</option>
+        <option value="D. Const.">D. Const.</option>
+        <option value="D. Civil">D. Civil</option>
+        <option value="D. Penal">D. Penal</option>
+        <option value="Hist.">Hist.</option>
+        <option value="Extensão">Extensão</option>
+      </select>
+      <input type="text" class="form-input" id="esct-topic" placeholder="Tópico estudado (ex.: autotutela)" style="width:100%; margin-bottom:0.5rem">
+      <textarea class="form-input" id="esct-connection" placeholder="Como apareceu na prática? (ex.: cliente veio reclamar de vizinho...)" style="width:100%; min-height:75px; resize:vertical; margin-bottom:0.5rem"></textarea>
+      <input type="text" class="form-input" id="esct-case" placeholder="Referência do caso (opcional)" style="width:100%; margin-bottom:0.5rem">
+      <button class="btn-primary" onclick="addEsct()">Registrar Conexão</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══ POMODORO ══ -->
+<div id="page-pomodoro" class="page">
+  <div class="card">
+    <div class="card-title">⏱ Timer de Estudo</div>
+    <div class="pom-display">
+      <div class="pom-mode-label" id="pom-mode-label">FOCO</div>
+      <div class="pom-ring">
+        <svg width="160" height="160" viewBox="0 0 160 160">
+          <circle cx="80" cy="80" r="70" fill="none" stroke="#F7D6E5" stroke-width="10"/>
+          <circle cx="80" cy="80" r="70" fill="none" stroke="#B5174E" stroke-width="10"
+            stroke-dasharray="439.82" stroke-dashoffset="0" id="pom-ring-fill"
+            stroke-linecap="round" style="transition:stroke-dashoffset 0.5s"/>
+        </svg>
+        <div class="pom-ring-text">
+          <div class="pom-time" id="pom-time">25:00</div>
+          <div class="pom-session-label" id="pom-sess-label">Sessão 1</div>
+        </div>
+      </div>
+      <div class="pom-dots" id="pom-dots"></div>
+    </div>
+    <div style="margin-bottom:0.75rem">
+      <div class="section-label">Disciplina desta sessão</div>
+      <select class="form-select pom-disc-sel" id="pom-subject">
+        <option value="TGP">TGP</option>
+        <option value="D. Const.">D. Const.</option>
+        <option value="D. Civil">D. Civil</option>
+        <option value="D. Penal">D. Penal</option>
+        <option value="Hist.">Hist.</option>
+        <option value="Extensão">Extensão</option>
+      </select>
+    </div>
+    <div class="pom-controls">
+      <button class="pom-btn start" id="pom-start-btn" onclick="pomToggle()">▶ Iniciar</button>
+      <button class="pom-btn skip" onclick="pomReset()">↺ Resetar</button>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-title">📋 Sessões de Hoje</div>
+    <div id="pom-log-list"><div class="empty-state">Nenhuma sessão concluída hoje.</div></div>
+  </div>
+</div>
+
+<!-- ══ LEITURAS ══ -->
+<div id="page-leituras" class="page">
+  <div class="card">
+    <div class="card-title">📖 Rastreador de Leituras</div>
+    <div id="reading-list"><div class="empty-state">Nenhuma leitura cadastrada.</div></div>
+    <div class="add-box" style="margin-top:0.75rem">
+      <div class="add-box-title">+ Adicionar Leitura</div>
+      <select class="form-select" id="read-subject" style="width:100%; margin-bottom:0.5rem">
+        <option value="TGP">TGP</option>
+        <option value="D. Const.">D. Const.</option>
+        <option value="D. Civil">D. Civil</option>
+        <option value="D. Penal">D. Penal</option>
+        <option value="Hist.">Hist.</option>
+        <option value="Extensão">Extensão</option>
+      </select>
+      <input type="text" class="form-input" id="read-title" placeholder="Título / capítulo (ex.: Cap. 3 – Capacidade Civil)" style="width:100%; margin-bottom:0.5rem">
+      <div class="form-row">
+        <input type="number" class="form-input" id="read-pages" placeholder="Páginas" min="0" style="max-width:100px">
+        <span style="align-self:center; color:var(--muted); font-size:0.8rem">páginas (opcional)</span>
+      </div>
+      <button class="btn-primary" onclick="addReading()" style="margin-top:0.5rem">Adicionar</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══ FLASHCARDS ══ -->
+<div id="page-flashcards" class="page">
+  <div class="card">
+    <div class="card-title">🃏 Flashcards</div>
+    <div class="fc-tab-btns">
+      <button class="fc-tab active" id="fc-tab-study" onclick="fcShowTab('study')">Estudar</button>
+      <button class="fc-tab" id="fc-tab-all" onclick="fcShowTab('all')">Todos</button>
+      <button class="fc-tab" id="fc-tab-add" onclick="fcShowTab('add')">+ Novo</button>
+    </div>
+
+    <!-- STUDY TAB -->
+    <div id="fc-study-panel">
+      <div id="fc-study-content"></div>
+    </div>
+
+    <!-- ALL TAB -->
+    <div id="fc-all-panel" style="display:none">
+      <select class="form-select" id="fc-filter-disc" style="width:100%; margin-bottom:0.75rem" onchange="renderFcAll()">
+        <option value="">Todas as disciplinas</option>
+        <option value="TGP">TGP</option>
+        <option value="D. Const.">D. Const.</option>
+        <option value="D. Civil">D. Civil</option>
+        <option value="D. Penal">D. Penal</option>
+        <option value="Hist.">Hist.</option>
+        <option value="Extensão">Extensão</option>
+      </select>
+      <div id="fc-all-list"></div>
+    </div>
+
+    <!-- ADD TAB -->
+    <div id="fc-add-panel" style="display:none">
+      <select class="form-select" id="fc-subject" style="width:100%; margin-bottom:0.5rem">
+        <option value="TGP">TGP</option>
+        <option value="D. Const.">D. Const.</option>
+        <option value="D. Civil">D. Civil</option>
+        <option value="D. Penal">D. Penal</option>
+        <option value="Hist.">Hist.</option>
+        <option value="Extensão">Extensão</option>
+      </select>
+      <textarea class="form-input" id="fc-front" placeholder="Frente do cartão (pergunta ou termo)" style="width:100%; min-height:70px; resize:vertical; margin-bottom:0.5rem"></textarea>
+      <textarea class="form-input" id="fc-back" placeholder="Verso do cartão (resposta ou definição)" style="width:100%; min-height:70px; resize:vertical; margin-bottom:0.5rem"></textarea>
+      <button class="btn-primary" onclick="addFlashcard()">Criar Flashcard</button>
+    </div>
+  </div>
+</div>
+
+<!-- BOTTOM NAV -->
+<nav class="bottom-nav">
+  <button class="nav-btn active" onclick="showPage('inicio', this)">
+    <span class="nav-icon">🏠</span>Início
+  </button>
+  <button class="nav-btn" onclick="showPage('hoje', this)">
+    <span class="nav-icon">✅</span>Hoje
+  </button>
+  <button class="nav-btn" onclick="showPage('progresso', this)">
+    <span class="nav-icon">📊</span>Progresso
+  </button>
+  <button class="nav-btn" onclick="showPage('revisoes', this)">
+    <span class="nav-icon">🔄</span>Revisões
+  </button>
+  <button class="nav-btn" onclick="showPage('notas', this)">
+    <span class="nav-icon">📝</span>Notas
+  </button>
+  <button class="nav-btn" onclick="showPage('metas', this)">
+    <span class="nav-icon">🎯</span>Metas
+  </button>
+  <button class="nav-btn" onclick="showPage('cronograma', this)">
+    <span class="nav-icon">📅</span>Grade
+  </button>
+  <button class="nav-btn" onclick="showPage('avaliacoes', this)">
+    <span class="nav-icon">📋</span>Provas
+  </button>
+  <button class="nav-btn" onclick="showPage('erros', this)">
+    <span class="nav-icon">❌</span>Erros
+  </button>
+  <button class="nav-btn" onclick="showPage('termos', this)">
+    <span class="nav-icon">⚖️</span>Termos
+  </button>
+  <button class="nav-btn" onclick="showPage('boletim', this)">
+    <span class="nav-icon">📊</span>Boletim
+  </button>
+  <button class="nav-btn" onclick="showPage('entregas', this)">
+    <span class="nav-icon">📌</span>Entregas
+  </button>
+  <button class="nav-btn" onclick="showPage('disciplinas', this)">
+    <span class="nav-icon">📚</span>Discip.
+  </button>
+  <button class="nav-btn" onclick="showPage('calendario', this)">
+    <span class="nav-icon">📆</span>Calend.
+  </button>
+  <button class="nav-btn" onclick="showPage('grad', this)">
+    <span class="nav-icon">🎓</span>Gradu.
+  </button>
+  <button class="nav-btn" onclick="showPage('config', this)">
+    <span class="nav-icon">⚙️</span>Config
+  </button>
+  <button class="nav-btn" onclick="showPage('faltas', this)">
+    <span class="nav-icon">🗓</span>Faltas
+  </button>
+  <button class="nav-btn" onclick="showPage('juris', this)">
+    <span class="nav-icon">📌</span>Juris
+  </button>
+  <button class="nav-btn" onclick="showPage('escritorio', this)">
+    <span class="nav-icon">🏢</span>Escritório
+  </button>
+  <button class="nav-btn" onclick="showPage('pomodoro', this)">
+    <span class="nav-icon">⏱</span>Timer
+  </button>
+  <button class="nav-btn" onclick="showPage('leituras', this)">
+    <span class="nav-icon">📖</span>Leituras
+  </button>
+  <button class="nav-btn" onclick="showPage('flashcards', this)">
+    <span class="nav-icon">🃏</span>Cards
+  </button>
+</nav>
+
+<script>
+// ═══════════ SEGURANÇA DOS DADOS (cópia interna, alertas, validação) ═══════════
+const APP_VERSION='2026.11-b';
+const PJ_NOEXPORT=/^pj_(snap_|corrupt_|appVersion$|lastBackup$)/;
+const pjAlerts=[];
+function pjKeys(){const k=[];for(let i=0;i<localStorage.length;i++){const n=localStorage.key(i);if(n&&n.startsWith('pj_'))k.push(n);}return k;}
+function pjSnapshot(name){try{const o={};pjKeys().filter(k=>!PJ_NOEXPORT.test(k)).forEach(k=>{o[k]=localStorage.getItem(k);});
+ const t=JSON.stringify({date:new Date().toISOString(),data:o});if(t.length>2000000)return false;localStorage.setItem('pj_snap_'+name,t);return true;}catch(e){return false;}}
+(function(){try{
+ const had=pjKeys().filter(k=>!PJ_NOEXPORT.test(k));
+ if(had.length===0)pjAlerts.push('empty');
+ else if(localStorage.getItem('pj_appVersion')!==APP_VERSION)pjAlerts.push(pjSnapshot('update')?'updated':'updated-nosnap');
+ localStorage.setItem('pj_appVersion',APP_VERSION);
+ if(!localStorage.getItem('pj_schema'))localStorage.setItem('pj_schema','1');
+}catch(e){pjAlerts.push('nostorage');}})();
+// ═══════════════════════════════════════════════════════════
+//  CONSTANTS & CONFIG
+// ═══════════════════════════════════════════════════════════
+const SEMESTER_START = new Date('2026-07-27');
+const SEMESTER_END   = new Date('2026-12-14');
+const TOTAL_WEEKS    = 21;
+const GOAL_MIN       = 600; // 10h per discipline
+
+const DISCIPLINES = {
+  'TGP':       { label: 'Teoria Geral do Processo',  color: '#7B5EA7', bg: '#F3EFFF' },
+  'D. Const.': { label: 'Direito Constitucional',    color: '#1A6B9A', bg: '#EAF4FF' },
+  'D. Civil':  { label: 'Direito Civil – PG',         color: '#B07A00', bg: '#FFF8EA' },
+  'D. Penal':  { label: 'Direito Penal – TGC',        color: '#C0392B', bg: '#FFF0EF' },
+  'Hist.':     { label: 'História do Direito',        color: '#2D7A5E', bg: '#EDFFF6' },
+  'Extensão':  { label: 'Projeto de Extensão I',      color: '#6B8C2A', bg: '#F4FFEA' },
+};
+
+const SCHEDULE = [
+  { day: 'Segunda-feira',  dayNum: 1, disc: 'TGP',       time: '20:30 – 21:50', extra: null },
+  { day: 'Terça-feira',    dayNum: 2, disc: 'D. Const.', time: '18:20 – 21:10', extra: null },
+  { day: 'Quarta-feira',   dayNum: 3, disc: 'Extensão',  time: '19:00 – 21:10', extra: 'D. Civil' },
+  { day: 'Quinta-feira',   dayNum: 4, disc: 'D. Civil',  time: '18:20 – 21:10', extra: null },
+  { day: 'Sexta-feira',    dayNum: 5, disc: 'D. Penal',  time: '18:20 – 21:10', extra: null },
+  { day: 'EAD (flexível)', dayNum: -1, disc: 'Hist.',    time: 'Horário livre',  extra: null },
+];
+
+const SUGGESTIONS_BY_DAY = {
+  1: [{ disc:'TGP',       task:'Leitura pré-aula – TGP',         min:30 }, { disc:'D. Civil',  task:'Questões de concurso – D. Civil',     min:45 }],
+  2: [{ disc:'D. Const.', task:'Revisão de Constitucional',       min:60 }, { disc:'TGP',       task:'Resumo da última aula – TGP',          min:30 }],
+  3: [{ disc:'D. Civil',  task:'Questões de concurso – D. Civil', min:60 }, { disc:'Extensão',  task:'Atividade de Extensão',                min:45 }],
+  4: [{ disc:'D. Civil',  task:'Mapa mental – D. Civil',          min:45 }, { disc:'D. Const.', task:'Revisão de Constitucional',            min:30 }],
+  5: [{ disc:'D. Penal',  task:'Questões de concurso – D. Penal', min:45 }, { disc:'D. Civil',  task:'Leitura de doutrina – D. Civil',       min:30 }],
+  6: [{ disc:'Hist.',     task:'Módulo EAD – História do Direito', min:60 }, { disc:'D. Penal', task:'Resumo semanal – D. Penal',            min:30 }],
+  0: [{ disc:'D. Civil',  task:'Questões de concurso – D. Civil', min:60 }, { disc:'D. Penal',  task:'Questões de concurso – D. Penal',     min:45 }],
+};
+
+// ═══════════════════════════════════════════════════════════
+//  STATE & STORAGE
+// ═══════════════════════════════════════════════════════════
+function load(key, def) {
+  let v=null;
+  try { v = localStorage.getItem(key); return v ? JSON.parse(v) : def; }
+  catch(e) { try{ if(v){ localStorage.setItem('pj_corrupt_'+key.slice(3), v); pjAlerts.push('corrupt:'+key); } }catch(_){} return def; }
+}
+let pjFailShown=false;
+function save(key, val) {
+  try { localStorage.setItem(key, JSON.stringify(val)); return true; }
+  catch(e) { if(!pjFailShown){pjFailShown=true;alert('⚠️ Não foi possível salvar os dados neste navegador ('+(e&&e.name==='QuotaExceededError'?'armazenamento cheio':'armazenamento indisponível')+'). Exporte um backup agora em ⚙️ Config para não perder o que foi cadastrado.');} return false; }
+}
+
+let state = {
+  tasks:    load('pj_tasks', []),
+  revisions:load('pj_revisions', []),
+  notes:    load('pj_notes', {}),
+  goals:    load('pj_goals', {}),
+  exams:    load('pj_exams', []),
+  errors:   load('pj_errors', []),
+  terms:    load('pj_terms', []),
+  qcount:     load('pj_qcount', {}),
+  attendance:   load('pj_attendance', []),
+  juris:        load('pj_juris', []),
+  escritorio:   load('pj_escritorio', []),
+  leituras:     load('pj_leituras', []),
+  flashcards:   load('pj_flashcards', []),
+  currentPeriod:load('pj_currentPeriod', 2),
+  periods:      load('pj_periods', {}),
+  grades:       load('pj_grades', []),
+  assignments:  load('pj_assignments', []),
+};
+
+// Default subjects for period 2 (pre-loaded)
+const DEFAULT_SUBJECTS = {
+  2: [
+    { id:'tgp',   name:'Teoria Geral do Processo', abbrev:'TGP',       color:'#7B5EA7', day:'Segunda',      time:'20:30–21:50', professor:'' },
+    { id:'const', name:'Direito Constitucional',   abbrev:'D. Const.', color:'#1A6B9A', day:'Terça',        time:'18:20–21:10', professor:'' },
+    { id:'civil', name:'Direito Civil – PG',        abbrev:'D. Civil',  color:'#B07A00', day:'Quarta/Quinta',time:'18:20–21:10', professor:'' },
+    { id:'penal', name:'Direito Penal – TGC',       abbrev:'D. Penal',  color:'#C0392B', day:'Sexta',        time:'18:20–21:10', professor:'' },
+    { id:'hist',  name:'História do Direito',       abbrev:'Hist.',     color:'#2D7A5E', day:'EAD',          time:'Flexível',    professor:'' },
+    { id:'ext',   name:'Projeto de Extensão I',     abbrev:'Extensão',  color:'#6B8C2A', day:'Quarta',       time:'19:00–21:10', professor:'' },
+  ]
+};
+if (!state.periods[2]) { state.periods[2] = { subjects: DEFAULT_SUBJECTS[2] }; persist('periods'); }
+
+const EVAL_TYPES  = ['N1','N2','Checkpoint','Exame Final'];
+const ASSIGN_TYPES= ['Trabalho','Seminário','Resumo','Projeto','Fichamento','Apresentação','Outro'];
+const SWATCHES    = ['#7B5EA7','#1A6B9A','#B07A00','#C0392B','#2D7A5E','#6B8C2A','#D35400','#1A7A6B','#8B4513','#2C3E50','#7D3C98','#1E8BC3'];
+
+function currentSubjects() {
+  return (state.periods[state.currentPeriod]?.subjects) || [];
+}
+function subjectById(id) { return currentSubjects().find(s => s.id === id); }
+function subjectColor(id) { return subjectById(id)?.color || '#999'; }
+
+function persist(key) { save('pj_'+key, state[key]); }
+
+// ═══════════════════════════════════════════════════════════
+//  UTILS
+// ═══════════════════════════════════════════════════════════
+function uid() { return Date.now().toString(36) + Math.random().toString(36).slice(2,6); }
+
+function today() { return localISO(new Date()); }
+
+function fmt(dateStr) {
+  const [y,m,d] = dateStr.split('-');
+  return `${d}/${m}/${y}`;
+}
+
+function daysUntil(dateStr) {
+  const diff = new Date(dateStr) - new Date(today());
+  return Math.ceil(diff / 86400000);
+}
+
+function semesterProgress() {
+  const now  = new Date();
+  const total = SEMESTER_END - SEMESTER_START;
+  const elapsed = Math.max(0, Math.min(now - SEMESTER_START, total));
+  const pct = Math.round((elapsed / total) * 100);
+  const weekNum = Math.max(1, Math.min(TOTAL_WEEKS, Math.ceil(elapsed / (7*86400000))));
+  return { pct, weekNum };
+}
+
+function discColor(key) { return DISCIPLINES[key]?.color || '#999'; }
+function discBg(key)    { return DISCIPLINES[key]?.bg    || '#f5f5f5'; }
+
+// ═══════════════════════════════════════════════════════════
+//  NAVIGATION
+// ═══════════════════════════════════════════════════════════
+function showPage(id, btn) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('page-' + id).classList.add('active');
+  syncDisciplines();
+  if (btn) btn.classList.add('active');
+
+  const handlers = {
+    'config': renderConfig, 'disc': renderDiscDetail, 'grad': renderGrad, 'calendario': renderCalendario,
+    'inicio':      renderInicio,
+    'hoje':        renderHoje,
+    'progresso':   renderProgresso,
+    'revisoes':    renderRevisoes,
+    'notas':       renderNotas,
+    'metas':       renderMetas,
+    'cronograma':  renderCronograma,
+    'avaliacoes':  renderAvaliacoes,
+    'erros':       renderErros,
+    'termos':      renderTermos,
+    'boletim':     renderBoletim,
+    'entregas':    renderEntregas,
+    'disciplinas': renderDisciplinas,
+    'faltas':      renderFaltas,
+    'juris':       renderJuris,
+    'escritorio':  renderEscritorio,
+    'pomodoro':    renderPomodoro,
+    'leituras':    renderLeituras,
+    'flashcards':  renderFlashcards,
+  };
+  if (handlers[id]) handlers[id]();
+}
+
+// ═══════════════════════════════════════════════════════════
+//  INÍCIO
+// ═══════════════════════════════════════════════════════════
+function renderInicio() {
+  const now = new Date();
+  const dayNames = ['domingo','segunda-feira','terça-feira','quarta-feira','quinta-feira','sexta-feira','sábado'];
+  const months = ['janeiro','fevereiro','março','abril','maio','junho','julho','agosto','setembro','outubro','novembro','dezembro'];
+  document.getElementById('today-label').textContent =
+    `${dayNames[now.getDay()]}, ${now.getDate()} de ${months[now.getMonth()]} de ${now.getFullYear()}`;
+
+  const { pct, weekNum } = semesterProgress();
+  document.getElementById('sem-pct').textContent = pct + '%';
+  document.getElementById('sem-bar').style.width = pct + '%';
+  document.getElementById('sem-week').textContent = `Semana ${weekNum}/${TOTAL_WEEKS}`;
+
+  // Stats
+  const todayStr = today();
+  const todayTasks = prd('tasks').filter(t => t.date === todayStr);
+  const doneTasks  = todayTasks.filter(t => t.completed).length;
+  document.getElementById('stat-tasks').textContent = `${doneTasks}/${todayTasks.length}`;
+
+  const revDue = prd('revisions').filter(r => !r.consolidated && r.nextReview <= todayStr).length;
+  document.getElementById('stat-rev').textContent = revDue;
+
+  // Suggestions
+  const dow = now.getDay();
+  const suggs = (SUGGESTIONS_BY_DAY[dow] || SUGGESTIONS_BY_DAY[0]).filter(x=>DISCIPLINES[x.disc]);
+  const sl = document.getElementById('suggestions-list');
+  sl.innerHTML = suggs.map(s => `
+    <div class="suggestion-item" style="border-color:${discColor(s.disc)}">
+      <span class="suggestion-badge" style="background:${discColor(s.disc)}">${s.disc}</span>
+      <span class="suggestion-text">${s.task}</span>
+      <span class="suggestion-time">${s.min} min</span>
+    </div>`).join('');
+
+  // Progress bars
+  const hp = document.getElementById('home-progress');
+  const mins = calcMins();
+  hp.innerHTML = Object.entries(DISCIPLINES).map(([k, d]) => {
+    const m = mins[k] || 0;
+    const pct = Math.min(100, Math.round((m / GOAL_MIN) * 100));
+    return `<div class="progress-disc">
+      <div class="progress-disc-name" style="color:${d.color}">${k}</div>
+      <div class="progress-disc-bar"><div class="progress-disc-fill" style="background:${d.color}; width:${pct}%"></div></div>
+      <div class="progress-disc-min">${m} min</div>
+    </div>`;
+  }).join('');
+
+  // Upcoming exams (within 14 days)
+  const upcoming = prd('exams')
+    .filter(e => { const d = daysUntil(e.date); return d >= 0 && d <= 14; })
+    .sort((a,b) => a.date.localeCompare(b.date));
+
+  const ea = document.getElementById('exams-alert');
+  const el = document.getElementById('upcoming-exams-list');
+  if (upcoming.length > 0) {
+    ea.style.display = 'block';
+    el.innerHTML = upcoming.map(e => {
+      const d = daysUntil(e.date);
+      return `<div class="suggestion-item" style="border-color:${discColor(e.subject)}">
+        <span class="suggestion-badge" style="background:${discColor(e.subject)}">${e.subject}</span>
+        <span class="suggestion-text">${e.name}</span>
+        <span class="suggestion-time" style="color:${d<=3?'#C0392B':'inherit'}">${d===0?'Hoje':d===1?'Amanhã':'em '+d+' dias'}</span>
+      </div>`;
+    }).join('');
+  } else {
+    ea.style.display = 'none';
+  }
+}
+
+// ═══════════════════════════════════════════════════════════
+//  HOJE
+// ═══════════════════════════════════════════════════════════
+function renderHoje() {
+  const el = document.getElementById('task-date');
+  if (!el.value) el.value = today();
+  el.onchange = renderTaskList;
+  renderTaskList();
+}
+
+function renderTaskList() {
+  const date = document.getElementById('task-date').value;
+  const tasks = prd('tasks').filter(t => t.date === date);
+  const el = document.getElementById('task-list');
+  if (!tasks.length) { el.innerHTML = '<div class="empty-state">Nenhuma tarefa para esta data.</div>'; return; }
+  el.innerHTML = tasks.map(t => `
+    <div class="task-item ${t.completed?'done':''}" id="ti-${t.id}">
+      <div class="task-check ${t.completed?'checked':''}" onclick="toggleTask('${t.id}')"></div>
+      <div style="flex:1; min-width:0">
+        <div class="task-desc">${t.description || '(sem descrição)'}</div>
+        <div class="task-meta">
+          <span class="task-badge" style="background:${discColor(t.subject)}">${t.subject}</span>
+          &nbsp;${t.type} · ${t.duration} min
+        </div>
+      </div>
+      <button class="task-del" onclick="deleteTask('${t.id}')">🗑</button>
+    </div>`).join('');
+}
+
+function addTask() {
+  const desc = document.getElementById('task-desc').value.trim();
+  const date = document.getElementById('task-date').value || today();
+  const subj = document.getElementById('task-subject').value;
+  const type = document.getElementById('task-type').value;
+  const dur  = parseInt(document.getElementById('task-duration').value) || 30;
+  if (!desc) { alert('Preencha a descrição da tarefa.'); return; }
+  state.tasks.push({ id: uid(), ...subjRef(subj), date, subject: subj, type, description: desc, duration: dur, completed: false });
+  persist('tasks');
+  document.getElementById('task-desc').value = '';
+  renderTaskList();
+}
+
+function toggleTask(id) {
+  const t = state.tasks.find(x => x.id === id);
+  if (t) { t.completed = !t.completed; persist('tasks'); renderTaskList(); }
+}
+
+function deleteTask(id) {
+  state.tasks = state.tasks.filter(x => x.id !== id);
+  persist('tasks');
+  renderTaskList();
+}
+
+// ═══════════════════════════════════════════════════════════
+//  PROGRESSO
+// ═══════════════════════════════════════════════════════════
+function calcMins() {
+  const m = {};
+  prd('tasks').filter(t => t.completed).forEach(t => {
+    m[t.subject] = (m[t.subject] || 0) + (t.duration || 0);
+  });
+  return m;
+}
+
+function renderProgresso() {
+  const mins = calcMins();
+  const totalMin = Object.values(mins).reduce((a,b)=>a+b, 0);
+  const totalSessions = prd('tasks').filter(t => t.completed).length;
+  document.getElementById('total-sessions').textContent = totalSessions;
+  document.getElementById('total-hours').textContent = (totalMin/60).toFixed(1)+'h';
+
+  const dl = document.getElementById('disc-progress-list');
+  dl.innerHTML = Object.entries(DISCIPLINES).map(([k,d]) => {
+    const m = mins[k] || 0;
+    const pct = Math.min(100, Math.round((m / GOAL_MIN) * 100));
+    const sess = prd('tasks').filter(t => t.completed && t.subject === k).length;
+    return `<div class="prog-disc-card" style="background:${d.bg}; border-color:${d.color}">
+      <div class="prog-disc-header">
+        <div class="prog-disc-name-big" style="color:${d.color}">${d.label}</div>
+        <div class="prog-disc-pct" style="color:${d.color}">${pct}%</div>
+      </div>
+      <div class="prog-disc-details">${sess} sessões · ${m} min estudados</div>
+      <div class="prog-disc-track"><div class="prog-disc-bar-fill" style="background:${d.color}; width:${pct}%"></div></div>
+    </div>`;
+  }).join('');
+
+  // Question counter
+  const ql = document.getElementById('question-counter-list');
+  if (!state.qcount) state.qcount = {};
+  ql.innerHTML = Object.entries(DISCIPLINES).map(([k,d]) => {
+    const q = state.qcount[k] || { total:0, correct:0 };
+    const acc = q.total > 0 ? Math.round((q.correct/q.total)*100) : 0;
+    return `<div style="display:flex; align-items:center; gap:0.75rem; margin-bottom:0.75rem; padding:0.6rem 0.75rem; background:${d.bg}; border-radius:8px;">
+      <span style="font-size:0.78rem; font-weight:700; color:${d.color}; min-width:68px">${k}</span>
+      <div style="flex:1">
+        <div style="font-size:0.7rem; color:var(--muted)">${q.correct}/${q.total} acertos ${q.total>0?'('+acc+'%)':''}</div>
+      </div>
+      <div class="q-counter">
+        <input type="number" class="q-input" placeholder="✓" id="qc-${k}" min="0">
+        <input type="number" class="q-input" placeholder="total" id="qt-${k}" min="0">
+        <button class="q-btn" onclick="addQuestions('${k}')">+</button>
+      </div>
+    </div>`;
+  }).join('') + '<div class="text-muted" style="font-size:0.68rem; margin-top:0.25rem">Informe acertos e total para cada sessão</div>';
+}
+
+function addQuestions(key) {
+  const c = parseInt(document.getElementById('qc-'+key).value) || 0;
+  const t = parseInt(document.getElementById('qt-'+key).value) || 0;
+  if (!t) return;
+  if (!state.qcount[key]) state.qcount[key] = { total:0, correct:0 };
+  state.qcount[key].correct += c;
+  state.qcount[key].total   += t;
+  persist('qcount');
+  renderProgresso();
+}
+
+// ═══════════════════════════════════════════════════════════
+//  REVISÕES
+// ═══════════════════════════════════════════════════════════
+const STAGES = [
+  { label:'Novo',     days:1,  color:'#888' },
+  { label:'24h',      days:7,  color:'#E67E22' },
+  { label:'7 dias',   days:30, color:'#2980B9' },
+  { label:'30 dias',  days:99, color:'#8E44AD' },
+  { label:'✅ OK',    days:0,  color:'#27AE60' },
+];
+
+function nextReviewDate(stage) {
+  const d = new Date();
+  d.setDate(d.getDate() + (STAGES[stage]?.days || 1));
+  return localISO(d);
+}
+
+function renderRevisoes() {
+  const todayStr = today();
+  const due  = prd('revisions').filter(r => !r.consolidated && r.nextReview <= todayStr);
+  const future = prd('revisions').filter(r => !r.consolidated && r.nextReview > todayStr);
+  const done = prd('revisions').filter(r => r.consolidated);
+  const el = document.getElementById('revision-list');
+
+  let html = '';
+  if (!prd('revisions').length) { el.innerHTML = '<div class="empty-state">Nenhum tópico adicionado ainda.</div>'; return; }
+
+  if (due.length) {
+    html += `<div class="section-label">Para revisar hoje (${due.length})</div>`;
+    html += due.map(r => revHtml(r)).join('');
+  }
+  if (future.length) {
+    html += `<div class="section-label" style="margin-top:0.75rem">Próximas revisões (${future.length})</div>`;
+    html += future.map(r => revHtml(r)).join('');
+  }
+  if (done.length) {
+    html += `<div class="section-label" style="margin-top:0.75rem">Consolidados ✅ (${done.length})</div>`;
+    html += done.map(r => revHtml(r)).join('');
+  }
+  el.innerHTML = html;
+}
+
+function revHtml(r) {
+  const stage = STAGES[r.stage] || STAGES[0];
+  const todayStr = today();
+  const isDue = !r.consolidated && r.nextReview <= todayStr;
+  const isConsolidated = r.consolidated;
+  return `<div class="rev-item" style="border-color:${discColor(r.subject)}; background:${discBg(r.subject)}">
+    <div class="rev-item-top">
+      <div class="rev-topic">${r.topic}</div>
+      <div class="rev-badge-wrap">
+        <span class="task-badge" style="background:${discColor(r.subject)}">${r.subject}</span>
+        <span class="rev-stage-badge" style="background:${stage.color}">${stage.label}</span>
+      </div>
+    </div>
+    <div class="rev-next">${isConsolidated ? 'Consolidado ✅' : 'Próxima revisão: ' + fmt(r.nextReview)}</div>
+    ${!isConsolidated ? `<div class="rev-actions">
+      ${isDue ? `<button class="rev-btn advance" onclick="advanceRev('${r.id}')">Revisei ✓</button>` : ''}
+      ${r.stage >= 3 ? `<button class="rev-btn done" onclick="consolidateRev('${r.id}')">Consolidar ✅</button>` : ''}
+      <button class="rev-btn del" onclick="deleteRev('${r.id}')">Remover</button>
+    </div>` : `<div class="rev-actions"><button class="rev-btn del" onclick="deleteRev('${r.id}')">Remover</button></div>`}
+  </div>`;
+}
+
+function addRevision() {
+  const topic = document.getElementById('rev-topic').value.trim();
+  const subj  = document.getElementById('rev-subject').value;
+  if (!topic) { alert('Informe o tópico.'); return; }
+  state.revisions.push({ id: uid(), ...subjRef(subj), topic, subject: subj, stage: 0, nextReview: nextReviewDate(0), consolidated: false });
+  persist('revisions');
+  document.getElementById('rev-topic').value = '';
+  renderRevisoes();
+}
+
+function advanceRev(id) {
+  const r = state.revisions.find(x => x.id === id);
+  if (!r) return;
+  r.stage = Math.min(r.stage + 1, STAGES.length - 2);
+  r.nextReview = nextReviewDate(r.stage);
+  persist('revisions');
+  renderRevisoes();
+}
+
+function consolidateRev(id) {
+  const r = state.revisions.find(x => x.id === id);
+  if (r) { r.consolidated = true; persist('revisions'); renderRevisoes(); }
+}
+
+function deleteRev(id) {
+  state.revisions = state.revisions.filter(x => x.id !== id);
+  persist('revisions');
+  renderRevisoes();
+}
+
+// ═══════════════════════════════════════════════════════════
+//  NOTAS
+// ═══════════════════════════════════════════════════════════
+function buildWeekOptions(selectId, currentVal) {
+  const el = document.getElementById(selectId);
+  el.innerHTML = '';
+  for (let w = 1; w <= TOTAL_WEEKS; w++) {
+    const d = new Date(SEMESTER_START);
+    d.setDate(d.getDate() + (w-1)*7);
+    const label = `Semana ${w} · ${d.toLocaleDateString('pt-BR')}`;
+    const opt = document.createElement('option');
+    opt.value = weekKeyOf(w);
+    opt.textContent = label;
+    if (currentVal && currentVal === weekKeyOf(w)) opt.selected = true;
+    el.appendChild(opt);
+  }
+}
+
+function currentWeekKey() {
+  const { weekNum } = semesterProgress();
+  return weekKeyOf(weekNum);
+}
+
+function renderNotas() {
+  buildWeekOptions('notes-week', currentWeekKey());
+  loadNotes();
+}
+
+function loadNotes() {
+  const key = document.getElementById('notes-week').value;
+  const text = state.notes[key] || '';
+  document.getElementById('notes-text').value = text;
+  updateNotesCount(text);
+}
+
+function saveNotes() {
+  const key  = document.getElementById('notes-week').value;
+  const text = document.getElementById('notes-text').value;
+  state.notes[key] = text;
+  persist('notes');
+  document.getElementById('notes-saved-msg').textContent = '✓ Salvo automaticamente';
+  setTimeout(() => { const el = document.getElementById('notes-saved-msg'); if (el) el.textContent = ''; }, 2000);
+  updateNotesCount(text);
+}
+
+function updateNotesCount(text) {
+  const words = text.trim() ? text.trim().split(/\s+/).length : 0;
+  const el = document.getElementById('notes-word-count');
+  if (el) el.textContent = words + ' palavras';
+}
+
+// ═══════════════════════════════════════════════════════════
+//  METAS
+// ═══════════════════════════════════════════════════════════
+function renderMetas() {
+  buildWeekOptions('goals-week', currentWeekKey());
+  loadGoals();
+}
+
+function loadGoals() {
+  const key = document.getElementById('goals-week').value;
+  const goals = state.goals[key] || [];
+  const el = document.getElementById('goals-list');
+  if (!goals.length) { el.innerHTML = '<div class="empty-state">Nenhuma meta definida para esta semana.</div>'; return; }
+  el.innerHTML = goals.map(g => `
+    <div class="goal-item">
+      <div class="goal-check ${g.done?'checked':''}" onclick="toggleGoal('${key}','${g.id}')"></div>
+      <span class="goal-text ${g.done?'done':''}">${g.text}</span>
+      <button class="goal-del" onclick="deleteGoal('${key}','${g.id}')">🗑</button>
+    </div>`).join('');
+}
+
+function addGoal() {
+  const text = document.getElementById('goal-input').value.trim();
+  if (!text) return;
+  const key = document.getElementById('goals-week').value;
+  if (!state.goals[key]) state.goals[key] = [];
+  state.goals[key].push({ id: uid(), text, done: false });
+  persist('goals');
+  document.getElementById('goal-input').value = '';
+  loadGoals();
+}
+
+function toggleGoal(key, id) {
+  const g = (state.goals[key] || []).find(x => x.id === id);
+  if (g) { g.done = !g.done; persist('goals'); loadGoals(); }
+}
+
+function deleteGoal(key, id) {
+  if (state.goals[key]) {
+    state.goals[key] = state.goals[key].filter(x => x.id !== id);
+    persist('goals');
+    loadGoals();
+  }
+}
+
+function setQuickGoal(el) {
+  document.getElementById('goal-input').value = el.textContent;
+}
+
+// ═══════════════════════════════════════════════════════════
+//  CRONOGRAMA
+// ═══════════════════════════════════════════════════════════
+function renderCronograma() {
+  const todayDow = new Date().getDay(); // 0=Sun,1=Mon...
+  const el = document.getElementById('schedule-list');
+  el.innerHTML = SCHEDULE.filter(s=>DISCIPLINES[s.disc]).map(s => {
+    const isToday = s.dayNum === todayDow;
+    const d = DISCIPLINES[s.disc];
+    const d2 = s.extra ? DISCIPLINES[s.extra] : null;
+    return `<div class="schedule-day ${isToday?'schedule-today':''}">
+      <div class="schedule-day-header" style="background:${d.color}">
+        <span>${isToday ? '📍 ' : ''}${s.day}</span>
+        ${isToday ? '<span style="margin-left:auto; font-size:0.68rem; font-weight:400; opacity:0.85">Hoje</span>' : ''}
+      </div>
+      <div class="schedule-day-body">
+        <div class="schedule-disc" style="color:${d.color}">${d.label}</div>
+        <div class="schedule-time">⏰ ${s.time}</div>
+        ${d2 ? `<div class="divider"></div>
+        <div class="schedule-disc" style="color:${d2.color}; margin-top:0.35rem">${d2.label}</div>
+        <div class="schedule-time">⏰ ${s.time}</div>` : ''}
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// ═══════════════════════════════════════════════════════════
+//  AVALIAÇÕES
+// ═══════════════════════════════════════════════════════════
+function renderAvaliacoes() {
+  const sorted = [...prd('exams')].sort((a,b) => a.date.localeCompare(b.date));
+  const el = document.getElementById('exam-list');
+  if (!sorted.length) { el.innerHTML = '<div class="empty-state">Nenhuma avaliação cadastrada.</div>'; return; }
+  el.innerHTML = sorted.map(e => {
+    const d = daysUntil(e.date);
+    const isPast = d < 0;
+    return `<div class="exam-item ${isPast?'exam-past':''}" style="border-color:${discColor(e.subject)}; background:${discBg(e.subject)}">
+      <div class="exam-info">
+        <div class="exam-name">${e.name}</div>
+        <div class="exam-sub" style="color:${discColor(e.subject)}">${e.subject}</div>
+        ${e.note ? `<div class="exam-note">${e.note}</div>` : ''}
+      </div>
+      <div class="exam-date-wrap">
+        <div class="exam-date">${fmt(e.date)}</div>
+        <div class="exam-days" style="color:${!isPast&&d<=3?'#C0392B':'var(--muted)'}">
+          ${isPast ? 'Realizada' : d===0 ? 'Hoje!' : d===1 ? 'Amanhã' : 'em '+d+' dias'}
+        </div>
+        <button class="exam-del" onclick="deleteExam('${e.id}')">🗑 Remover</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function addExam() {
+  const name = document.getElementById('exam-name').value.trim();
+  const subj = document.getElementById('exam-subject').value;
+  const date = document.getElementById('exam-date').value;
+  const note = document.getElementById('exam-note').value.trim();
+  if (!name || !date) { alert('Preencha o nome e a data.'); return; }
+  state.exams.push({ id: uid(), ...subjRef(subj), name, subject: subj, date, note });
+  persist('exams');
+  document.getElementById('exam-name').value = '';
+  document.getElementById('exam-date').value = '';
+  document.getElementById('exam-note').value = '';
+  renderAvaliacoes();
+}
+
+function deleteExam(id) {
+  state.exams = state.exams.filter(x => x.id !== id);
+  persist('exams');
+  renderAvaliacoes();
+}
+
+// ═══════════════════════════════════════════════════════════
+//  ERROS
+// ═══════════════════════════════════════════════════════════
+function renderErros() {
+  const el = document.getElementById('error-list');
+  if (!prd('errors').length) { el.innerHTML = '<div class="empty-state">Nenhum erro registrado. Ótimo! 🎉</div>'; return; }
+  el.innerHTML = [...prd('errors')].reverse().map(e => `
+    <div class="error-item">
+      <div class="error-item-top">
+        <span class="error-subject-badge" style="background:${discColor(e.subject)}">${e.subject}</span>
+        <span class="error-date">${fmt(e.date)}</span>
+      </div>
+      <div class="error-label">O que foi cobrado</div>
+      <div class="error-text">${e.question}</div>
+      <div class="error-label">Minha resposta</div>
+      <div class="error-text" style="color:var(--danger)">${e.myAnswer}</div>
+      <div class="error-label">Correto</div>
+      <div class="error-correct">${e.correct}</div>
+      ${e.reason ? `<div class="error-reason">💭 ${e.reason}</div>` : ''}
+      <button class="error-del" onclick="deleteError('${e.id}')">🗑 Remover</button>
+    </div>`).join('');
+}
+
+function addError() {
+  const subj = document.getElementById('err-subject').value;
+  const q    = document.getElementById('err-question').value.trim();
+  const my   = document.getElementById('err-my').value.trim();
+  const cor  = document.getElementById('err-correct').value.trim();
+  const rea  = document.getElementById('err-reason').value.trim();
+  if (!q || !cor) { alert('Preencha pelo menos o enunciado e a resposta correta.'); return; }
+  state.errors.push({ id: uid(), ...subjRef(subj), subject: subj, question: q, myAnswer: my, correct: cor, reason: rea, date: today() });
+  persist('errors');
+  document.getElementById('err-question').value = '';
+  document.getElementById('err-my').value = '';
+  document.getElementById('err-correct').value = '';
+  document.getElementById('err-reason').value = '';
+  renderErros();
+}
+
+function deleteError(id) {
+  state.errors = state.errors.filter(x => x.id !== id);
+  persist('errors');
+  renderErros();
+}
+
+// ═══════════════════════════════════════════════════════════
+//  TERMOS
+// ═══════════════════════════════════════════════════════════
+function renderTermos() {
+  filterTerms();
+}
+
+function filterTerms() {
+  const q = (document.getElementById('term-search')?.value || '').toLowerCase();
+  const filtered = state.terms.filter(t =>
+    t.word.toLowerCase().includes(q) ||
+    t.definition.toLowerCase().includes(q) ||
+    (t.etymology || '').toLowerCase().includes(q)
+  );
+  const el = document.getElementById('term-list');
+  if (!filtered.length) {
+    el.innerHTML = `<div class="empty-state">${q ? 'Nenhum resultado para "'+q+'".' : 'Nenhum termo cadastrado ainda.'}</div>`;
+    return;
+  }
+  el.innerHTML = [...filtered].reverse().map(t => `
+    <div class="term-item">
+      <button class="term-del" onclick="deleteTerm('${t.id}')">🗑</button>
+      <div class="term-word">${t.word}</div>
+      ${t.etymology ? `<div class="term-etymology">${t.etymology}</div>` : ''}
+      <div class="term-def">${t.definition}</div>
+      ${t.example ? `<div class="term-example">"${t.example}"</div>` : ''}
+      <div class="term-date">${fmt(t.date)}</div>
+    </div>`).join('');
+}
+
+function addTerm() {
+  const word = document.getElementById('term-word').value.trim();
+  const etym = document.getElementById('term-etym').value.trim();
+  const def  = document.getElementById('term-def').value.trim();
+  const ex   = document.getElementById('term-ex').value.trim();
+  if (!word || !def) { alert('Preencha o termo e a definição.'); return; }
+  state.terms.push({ id: uid(), word, etymology: etym, definition: def, example: ex, date: today() });
+  persist('terms');
+  document.getElementById('term-word').value = '';
+  document.getElementById('term-etym').value = '';
+  document.getElementById('term-def').value = '';
+  document.getElementById('term-ex').value = '';
+  filterTerms();
+}
+
+function deleteTerm(id) {
+  state.terms = state.terms.filter(x => x.id !== id);
+  persist('terms');
+  filterTerms();
+}
+
+// ═══════════════════════════════════════════════════════════
+//  FALTAS
+// ═══════════════════════════════════════════════════════════
+const TRIBUNAL_COLORS = { STF:'#8B1A1A', STJ:'#1A4D8B', TRF:'#2D6B2D', TST:'#7B3A8B', TJRJ:'#8B5A1A' };
+
+function attStats(disc) {
+  const recs = prd('attendance').filter(a => a.subject === disc);
+  const total = recs.length;
+  const attended = recs.filter(a => a.present).length;
+  const missed = total - attended;
+  const pct = total ? Math.round((attended / total) * 100) : 100;
+  const maxFaltas = Math.floor(total * (1 - (state.config?.minFreq||75)/100));
+  const remaining = maxFaltas - missed;
+  return { total, attended, missed, pct, maxFaltas, remaining };
+}
+
+function renderFaltas() {
+  const el = document.getElementById('falta-disc-list');
+  el.innerHTML = Object.entries(DISCIPLINES).map(([k, d]) => {
+    const s = attStats(k);
+    const alertClass = s.pct >= 85 ? 'ok' : s.pct >= 75 ? 'warn' : 'danger';
+    const alertLabel = s.pct >= 85 ? '✓ OK' : s.pct >= 75 ? '⚠ Atenção' : '🚨 Risco';
+    return `<div class="falta-card" style="background:${d.bg}; border-color:${d.color}">
+      <div class="falta-header">
+        <div class="falta-name" style="color:${d.color}">${d.label}</div>
+        <div style="display:flex; align-items:center; gap:0.5rem">
+          <span class="falta-alert ${alertClass}">${alertLabel}</span>
+          <span class="falta-pct" style="color:${d.color}">${s.pct}%</span>
+        </div>
+      </div>
+      <div class="falta-detail">
+        ${s.attended}/${s.total} aulas · ${s.missed} falta${s.missed!==1?'s':''} · ${s.total ? (s.remaining >= 0 ? 'Pode faltar mais '+s.remaining : 'Excedeu '+Math.abs(s.remaining)+' falta'+(Math.abs(s.remaining)!==1?'s':'')) : 'Sem aulas registradas'}
+      </div>
+      <div class="falta-track"><div class="falta-fill" style="background:${d.color}; width:${s.pct}%"></div></div>
+      <div class="falta-btns">
+        <button class="falta-btn present" onclick="addAtt('${k}', true)">✓ Presente hoje</button>
+        <button class="falta-btn absent"  onclick="addAtt('${k}', false)">✗ Faltei hoje</button>
+      </div>
+    </div>`;
+  }).join('');
+  renderFaltaHistory();
+}
+
+function addAtt(disc, present) {
+  state.attendance.push({ id: uid(), ...subjRef(disc), date: today(), subject: disc, present });
+  persist('attendance');
+  renderFaltas();
+}
+
+function renderFaltaHistory() {
+  const disc = document.getElementById('falta-hist-disc')?.value || 'TGP';
+  const recs = [...prd('attendance').filter(a => a.subject === disc)].reverse();
+  const el = document.getElementById('falta-history-list');
+  if (!el) return;
+  if (!recs.length) { el.innerHTML = '<div class="empty-state">Nenhum registro para esta disciplina.</div>'; return; }
+  el.innerHTML = recs.map(r => `
+    <div class="falta-log-item">
+      <span style="color:${r.present?'var(--success)':'var(--danger)'}; font-weight:700">${r.present ? '✓ Presente' : '✗ Falta'}</span>
+      <span class="falta-log-date">${fmt(r.date)}</span>
+      <button class="falta-log-del" onclick="deleteAtt('${r.id}')">🗑</button>
+    </div>`).join('');
+}
+
+function deleteAtt(id) {
+  state.attendance = state.attendance.filter(x => x.id !== id);
+  persist('attendance');
+  renderFaltas();
+}
+
+// ═══════════════════════════════════════════════════════════
+//  JURISPRUDÊNCIA
+// ═══════════════════════════════════════════════════════════
+function renderJuris() { filterJuris(); }
+
+function filterJuris() {
+  const q = (document.getElementById('juris-search')?.value || '').toLowerCase();
+  const list = prd('juris').filter(j =>
+    j.tribunal.toLowerCase().includes(q) ||
+    j.tema.toLowerCase().includes(q) ||
+    (j.num || '').toLowerCase().includes(q) ||
+    j.ementa.toLowerCase().includes(q)
+  );
+  const el = document.getElementById('juris-list');
+  if (!list.length) { el.innerHTML = `<div class="empty-state">${q ? 'Nenhum resultado.' : 'Nenhuma jurisprudência cadastrada.'}</div>`; return; }
+  el.innerHTML = [...list].reverse().map(j => {
+    const tc = TRIBUNAL_COLORS[j.tribunal] || '#666';
+    return `<div class="juris-item" style="border-color:${discColor(j.subject)}">
+      <div class="juris-header">
+        <span class="tribunal-badge" style="background:${tc}">${j.tribunal}</span>
+        <span class="juris-id">${j.num || ''} · ${j.subject}</span>
+      </div>
+      <div class="juris-subject">${j.tema}</div>
+      <div class="juris-ementa">${j.ementa}</div>
+      ${j.application ? `<div class="juris-app">💡 ${j.application}</div>` : ''}
+      <button class="juris-del" onclick="deleteJuris('${j.id}')">🗑 Remover</button>
+    </div>`;
+  }).join('');
+}
+
+function addJuris() {
+  const tribunal = document.getElementById('juris-tribunal').value;
+  const num      = document.getElementById('juris-num').value.trim();
+  const subject  = document.getElementById('juris-subject').value;
+  const tema     = document.getElementById('juris-tema').value.trim();
+  const ementa   = document.getElementById('juris-ementa').value.trim();
+  const application = document.getElementById('juris-app').value.trim();
+  if (!tema || !ementa) { alert('Preencha o tema e a ementa.'); return; }
+  state.juris.push({ id: uid(), ...subjRef(subject), tribunal, num, subject, tema, ementa, application, date: today() });
+  persist('juris');
+  ['juris-num','juris-tema','juris-ementa','juris-app'].forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; });
+  filterJuris();
+}
+
+function deleteJuris(id) {
+  state.juris = state.juris.filter(x => x.id !== id);
+  persist('juris');
+  filterJuris();
+}
+
+// ═══════════════════════════════════════════════════════════
+//  ESCRITÓRIO
+// ═══════════════════════════════════════════════════════════
+function renderEscritorio() {
+  const el = document.getElementById('esct-list');
+  if (!prd('escritorio').length) { el.innerHTML = '<div class="empty-state">Nenhuma conexão registrada ainda.</div>'; return; }
+  el.innerHTML = [...prd('escritorio')].reverse().map(e => `
+    <div class="esct-item">
+      <div class="esct-header">
+        <span class="esct-disc" style="background:${discColor(e.subject)}">${e.subject}</span>
+        <span class="esct-date">${fmt(e.date)}</span>
+      </div>
+      <div class="esct-title">📚 ${e.topic}</div>
+      <div class="esct-text">${e.connection}</div>
+      ${e.caseRef ? `<div class="esct-case">📁 ${e.caseRef}</div>` : ''}
+      <button class="esct-del" onclick="deleteEsct('${e.id}')">🗑 Remover</button>
+    </div>`).join('');
+}
+
+function addEsct() {
+  const subject    = document.getElementById('esct-subject').value;
+  const topic      = document.getElementById('esct-topic').value.trim();
+  const connection = document.getElementById('esct-connection').value.trim();
+  const caseRef    = document.getElementById('esct-case').value.trim();
+  if (!topic || !connection) { alert('Preencha o tópico e a conexão.'); return; }
+  state.escritorio.push({ id: uid(), ...subjRef(subject), subject, topic, connection, caseRef, date: today() });
+  persist('escritorio');
+  ['esct-topic','esct-connection','esct-case'].forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; });
+  renderEscritorio();
+}
+
+function deleteEsct(id) {
+  state.escritorio = state.escritorio.filter(x => x.id !== id);
+  persist('escritorio');
+  renderEscritorio();
+}
+
+// ═══════════════════════════════════════════════════════════
+//  POMODORO
+// ═══════════════════════════════════════════════════════════
+const POM_MODES = [
+  { label:'FOCO',         secs: 25*60, color:'#B5174E' },
+  { label:'PAUSA CURTA',  secs:  5*60, color:'#2D8B5E' },
+  { label:'PAUSA LONGA',  secs: 15*60, color:'#1A6B9A' },
+];
+let pomState = { running: false, timer: null, mode: 0, secsLeft: POM_MODES[0].secs, session: 0, todayLog: [] };
+
+function renderPomodoro() {
+  pomUpdateUI();
+  renderPomLog();
+}
+
+function pomToggle() {
+  if (pomState.running) {
+    clearInterval(pomState.timer);
+    pomState.running = false;
+    document.getElementById('pom-start-btn').textContent = '▶ Continuar';
+    document.getElementById('pom-start-btn').className = 'pom-btn start';
+  } else {
+    pomState.running = true;
+    document.getElementById('pom-start-btn').textContent = '⏸ Pausar';
+    document.getElementById('pom-start-btn').className = 'pom-btn pause';
+    pomState.timer = setInterval(pomTick, 1000);
+  }
+}
+
+function pomTick() {
+  pomState.secsLeft--;
+  if (pomState.secsLeft <= 0) {
+    clearInterval(pomState.timer);
+    pomState.running = false;
+    const wasWork = pomState.mode === 0;
+    if (wasWork) {
+      pomState.session++;
+      const disc = document.getElementById('pom-subject')?.value || 'TGP';
+      pomState.todayLog.push({ disc, min: 25, time: new Date().toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'}) });
+      // auto-register in progress
+      if (!state.tasks) state.tasks = [];
+      state.tasks.push({ id: uid(), ...subjRef(disc), date: today(), subject: disc, type: 'Pomodoro', description: 'Sessão Pomodoro (automático)', duration: 25, completed: true });
+      persist('tasks');
+      renderPomLog();
+    }
+    // Switch mode
+    if (pomState.session % 4 === 0 && pomState.session > 0 && pomState.mode === 0) {
+      pomState.mode = 2;
+    } else if (wasWork) {
+      pomState.mode = 1;
+    } else {
+      pomState.mode = 0;
+    }
+    pomState.secsLeft = POM_MODES[pomState.mode].secs;
+    document.getElementById('pom-start-btn').textContent = '▶ Iniciar';
+    document.getElementById('pom-start-btn').className = 'pom-btn start';
+    if (typeof Notification !== 'undefined' && Notification.permission === 'granted') {
+      new Notification('Pomodoro', { body: wasWork ? '✅ Sessão concluída! Hora de descansar.' : '🎯 Pausa encerrada. Vamos estudar!' });
+    }
+  }
+  pomUpdateUI();
+}
+
+function pomUpdateUI() {
+  const mode = POM_MODES[pomState.mode];
+  const total = mode.secs;
+  const left  = pomState.secsLeft;
+  const m = Math.floor(left/60).toString().padStart(2,'0');
+  const s = (left%60).toString().padStart(2,'0');
+  const el = document.getElementById('pom-time'); if (el) el.textContent = `${m}:${s}`;
+  const ml = document.getElementById('pom-mode-label'); if (ml) ml.textContent = mode.label;
+  const sl = document.getElementById('pom-sess-label'); if (sl) sl.textContent = `Sessão ${pomState.session + 1}`;
+  // Ring
+  const ring = document.getElementById('pom-ring-fill');
+  if (ring) {
+    const circ = 439.82;
+    ring.style.strokeDashoffset = circ - (circ * (total - left) / total);
+    ring.style.stroke = mode.color;
+  }
+  // Dots
+  const dots = document.getElementById('pom-dots');
+  if (dots) {
+    dots.innerHTML = [0,1,2,3].map(i => `<div class="pom-dot ${i < (pomState.session % 4) ? 'done' : ''}"></div>`).join('');
+  }
+}
+
+function pomReset() {
+  clearInterval(pomState.timer);
+  pomState.running = false;
+  pomState.mode = 0;
+  pomState.secsLeft = POM_MODES[0].secs;
+  const btn = document.getElementById('pom-start-btn');
+  if (btn) { btn.textContent = '▶ Iniciar'; btn.className = 'pom-btn start'; }
+  pomUpdateUI();
+}
+
+function renderPomLog() {
+  const el = document.getElementById('pom-log-list');
+  if (!el) return;
+  if (!pomState.todayLog.length) { el.innerHTML = '<div class="empty-state">Nenhuma sessão concluída hoje.</div>'; return; }
+  el.innerHTML = [...pomState.todayLog].reverse().map(l =>
+    `<div class="pom-log-item">
+      <span class="pom-log-disc" style="color:${discColor(l.disc)}">${l.disc}</span>
+      <span>${l.time}</span>
+      <span class="pom-log-min">25 min ✅</span>
+    </div>`).join('');
+}
+
+// ═══════════════════════════════════════════════════════════
+//  LEITURAS
+// ═══════════════════════════════════════════════════════════
+function renderLeituras() {
+  const el = document.getElementById('reading-list');
+  if (!prd('leituras').length) { el.innerHTML = '<div class="empty-state">Nenhuma leitura cadastrada.</div>'; return; }
+  // Group by subject
+  const groups = {};
+  prd('leituras').forEach(r => { if (!groups[r.subject]) groups[r.subject] = []; groups[r.subject].push(r); });
+  el.innerHTML = Object.entries(groups).map(([disc, items]) => {
+    const done = items.filter(i => i.done).length;
+    const pct  = Math.round((done / items.length) * 100);
+    const d    = DISCIPLINES[disc] || { color: '#999', bg: '#f5f5f5' };
+    return `<div class="reading-disc-group">
+      <div class="reading-disc-title" style="color:${d.color}">${disc} — ${DISCIPLINES[disc]?.label || disc}</div>
+      <div class="reading-prog-row">
+        <div class="reading-prog-bar"><div class="reading-prog-fill" style="background:${d.color}; width:${pct}%"></div></div>
+        <div class="reading-prog-pct" style="color:${d.color}">${pct}%</div>
+      </div>
+      ${items.map(r => `
+        <div class="reading-item">
+          <div class="reading-check ${r.done?'checked':''}" style="border-color:${d.color}; ${r.done?'background:'+d.color:''}" onclick="toggleReading('${r.id}')"></div>
+          <div style="flex:1">
+            <div class="reading-title ${r.done?'done':''}">${r.title}</div>
+          </div>
+          ${r.pages ? `<div class="reading-pages">${r.pages}p</div>` : ''}
+          <button class="reading-del" onclick="deleteReading('${r.id}')">🗑</button>
+        </div>`).join('')}
+    </div>`;
+  }).join('');
+}
+
+function addReading() {
+  const subject = document.getElementById('read-subject').value;
+  const title   = document.getElementById('read-title').value.trim();
+  const pages   = parseInt(document.getElementById('read-pages').value) || 0;
+  if (!title) { alert('Informe o título ou capítulo.'); return; }
+  state.leituras.push({ id: uid(), ...subjRef(subject), subject, title, pages, done: false });
+  persist('leituras');
+  document.getElementById('read-title').value = '';
+  document.getElementById('read-pages').value = '';
+  renderLeituras();
+}
+
+function toggleReading(id) {
+  const r = state.leituras.find(x => x.id === id);
+  if (r) { r.done = !r.done; persist('leituras'); renderLeituras(); }
+}
+
+function deleteReading(id) {
+  state.leituras = state.leituras.filter(x => x.id !== id);
+  persist('leituras');
+  renderLeituras();
+}
+
+// ═══════════════════════════════════════════════════════════
+//  FLASHCARDS
+// ═══════════════════════════════════════════════════════════
+const FC_STAGES = [1, 3, 7, 14, 30]; // dias até próxima revisão
+let fcStudyQueue = [];
+let fcStudyIdx   = 0;
+let fcFlipped    = false;
+let fcActiveTab  = 'study';
+
+function fcNextReview(stage) {
+  const d = new Date();
+  d.setDate(d.getDate() + (FC_STAGES[stage] || 1));
+  return localISO(d);
+}
+
+function renderFlashcards() {
+  fcShowTab(fcActiveTab);
+}
+
+function fcShowTab(tab) {
+  fcActiveTab = tab;
+  ['study','all','add'].forEach(t => {
+    const btn = document.getElementById('fc-tab-'+t);
+    const panel = document.getElementById('fc-'+t+'-panel');
+    if (btn)   btn.classList.toggle('active', t === tab);
+    if (panel) panel.style.display = t === tab ? 'block' : 'none';
+  });
+  if (tab === 'study') renderFcStudy();
+  if (tab === 'all')   renderFcAll();
+}
+
+function renderFcStudy() {
+  const todayStr = today();
+  fcStudyQueue = prd('flashcards').filter(f => !f.memorized && f.nextReview <= todayStr);
+  fcStudyIdx   = 0;
+  fcFlipped    = false;
+  renderFcCard();
+}
+
+function renderFcCard() {
+  const el = document.getElementById('fc-study-content');
+  if (!el) return;
+  if (!fcStudyQueue.length) {
+    const total = prd('flashcards').length;
+    const mem   = prd('flashcards').filter(f => f.memorized).length;
+    el.innerHTML = `<div class="fc-empty">
+      <div class="fc-empty-icon">🎉</div>
+      <div style="font-size:0.9rem; font-weight:700; margin-bottom:0.35rem">Tudo em dia!</div>
+      <div class="fc-empty-icon" style="font-size:1rem">${mem}/${total} memorizados</div>
+      <div style="font-size:0.75rem; color:var(--muted); margin-top:0.5rem">Volte amanhã para revisar os próximos cartões.</div>
+    </div>`;
+    return;
+  }
+  if (fcStudyIdx >= fcStudyQueue.length) { renderFcStudy(); return; }
+  const card = fcStudyQueue[fcStudyIdx];
+  const d = DISCIPLINES[card.subject] || { color:'#999' };
+  el.innerHTML = `
+    <div class="fc-progress">${fcStudyIdx+1} de ${fcStudyQueue.length} para revisar hoje</div>
+    <div class="fc-card-wrap" id="fc-card-flip" onclick="fcFlip()">
+      <div class="fc-card-inner">
+        <div class="fc-front">
+          <div>
+            <div style="font-size:0.62rem; font-weight:700; color:${d.color}; text-transform:uppercase; letter-spacing:0.08em; margin-bottom:0.5rem">${card.subject}</div>
+            ${card.front}
+          </div>
+        </div>
+        <div class="fc-back">${card.back}</div>
+      </div>
+    </div>
+    <div class="fc-hint">${fcFlipped ? 'Como você se saiu?' : '👆 Toque para ver a resposta'}</div>
+    <div class="fc-ratings" ${!fcFlipped ? 'style="visibility:hidden"' : ''}>
+      <button class="fc-rate-btn easy"  onclick="fcRate('${card.id}','easy')">😊 Fácil</button>
+      <button class="fc-rate-btn hard"  onclick="fcRate('${card.id}','hard')">😅 Difícil</button>
+      <button class="fc-rate-btn wrong" onclick="fcRate('${card.id}','wrong')">❌ Errei</button>
+    </div>`;
+}
+
+function fcFlip() {
+  fcFlipped = !fcFlipped;
+  const wrap = document.getElementById('fc-card-flip');
+  if (wrap) wrap.classList.toggle('flipped', fcFlipped);
+  renderFcCard();
+  // re-apply flip state
+  const w2 = document.getElementById('fc-card-flip');
+  if (w2 && fcFlipped) w2.classList.add('flipped');
+}
+
+function fcRate(id, rating) {
+  const card = state.flashcards.find(x => x.id === id);
+  if (!card) return;
+  if (rating === 'easy') {
+    card.stage = Math.min((card.stage || 0) + 2, FC_STAGES.length - 1);
+    if (card.stage >= FC_STAGES.length - 1) card.memorized = true;
+  } else if (rating === 'hard') {
+    card.stage = Math.max((card.stage || 0), 0);
+  } else {
+    card.stage = 0;
+  }
+  card.nextReview = fcNextReview(card.stage);
+  persist('flashcards');
+  fcStudyIdx++;
+  fcFlipped = false;
+  renderFcCard();
+}
+
+function renderFcAll() {
+  const disc = document.getElementById('fc-filter-disc')?.value || '';
+  const list = disc ? prd('flashcards').filter(f => f.subject === disc) : prd('flashcards');
+  const el = document.getElementById('fc-all-list');
+  if (!list.length) { el.innerHTML = '<div class="empty-state">Nenhum flashcard encontrado.</div>'; return; }
+  el.innerHTML = [...list].reverse().map(f => {
+    const d = DISCIPLINES[f.subject] || { color:'#999' };
+    return `<div class="fc-list-item" style="border-color:${d.color}; background:${d.bg||'#fafafa'}">
+      <div style="flex:1">
+        <div class="fc-list-front">${f.front}</div>
+        <div class="fc-list-back">${f.back}</div>
+        <div style="font-size:0.62rem; color:${d.color}; margin-top:0.2rem">${f.subject} · ${f.memorized ? '✅ Memorizado' : 'Revisão: '+fmt(f.nextReview)}</div>
+      </div>
+      <button class="fc-list-del" onclick="deleteFc('${f.id}')">🗑</button>
+    </div>`;
+  }).join('');
+}
+
+function addFlashcard() {
+  const subject = document.getElementById('fc-subject').value;
+  const front   = document.getElementById('fc-front').value.trim();
+  const back    = document.getElementById('fc-back').value.trim();
+  if (!front || !back) { alert('Preencha a frente e o verso do cartão.'); return; }
+  state.flashcards.push({ id: uid(), ...subjRef(subject), subject, front, back, stage: 0, nextReview: today(), memorized: false });
+  persist('flashcards');
+  document.getElementById('fc-front').value = '';
+  document.getElementById('fc-back').value  = '';
+  fcShowTab('add');
+  alert('Flashcard criado! ✅');
+}
+
+function deleteFc(id) {
+  state.flashcards = state.flashcards.filter(x => x.id !== id);
+  persist('flashcards');
+  renderFcAll();
+}
+
+// ═══════════════════════════════════════════════════════════
+//  PERIOD MANAGEMENT
+// ═══════════════════════════════════════════════════════════
+
+function switchPeriod(p) {
+  state.currentPeriod = p;
+  persist('currentPeriod');
+  syncDisciplines();
+  if (!state.periods[p]) {
+    state.periods[p] = { name: p+'º período', label: '', archived: false, subjects: [] };
+    persist('periods');
+  }
+  buildPeriodBar();
+  // Re-render current page
+  const active = document.querySelector('.page.active');
+  if (active) {
+    const id = active.id.replace('page-','');
+    showPage(id, document.querySelector('.nav-btn.active'));
+  }
+}
+
+function populateSubjectSelects(...ids) {
+  const subjects = activeSubjects();
+  ids.forEach(id => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    const cur = el.value;
+    el.innerHTML = subjects.map(s => `<option value="${s.id}">${s.abbrev} — ${s.name}</option>`).join('');
+    if (cur) el.value = cur;
+  });
+}
+
+// ═══════════════════════════════════════════════════════════
+//  BOLETIM
+// ═══════════════════════════════════════════════════════════
+const PASSING_GRADE = 5.0;
+const EVAL_WEIGHTS  = { 'N1':3, 'N2':4, 'Checkpoint':1.5, 'Exame Final':5 };
+
+function calcSubjectAvg(subjectId) {
+  const evals = state.grades.filter(g => g.periodId === state.currentPeriod && g.subjectId === subjectId && g.grade !== null && g.grade !== '');
+  if (!evals.length) return null;
+  // Weighted average if all have weights, else simple
+  const withWeight = evals.filter(e => e.weight);
+  if (withWeight.length === evals.length) {
+    const sumW = evals.reduce((a,e) => a + (e.weight||1), 0);
+    const sumWG= evals.reduce((a,e) => a + parseFloat(e.grade||0)*(e.weight||1), 0);
+    return sumWG / sumW;
+  }
+  return evals.reduce((a,e) => a + parseFloat(e.grade||0), 0) / evals.length;
+}
+
+function subjectStatus(avg) {
+  if (avg === null)    return { cls:'risco',  label:'Sem notas' };
+  if (avg >= 7.0)      return { cls:'ok',     label:'✓ Aprovada' };
+  if (avg >= PASSING_GRADE) return { cls:'risco', label:'⚠ Em risco' };
+  return { cls:'reprov', label:'✗ Abaixo da média' };
+}
+
+function renderBoletim() {
+  const subjects = currentSubjects();
+  const el = document.getElementById('boletim-list');
+  if (!subjects.length) { el.innerHTML = '<div class="empty-state">Nenhuma disciplina cadastrada para este período.</div>'; return; }
+
+  let aprovadas=0, risco=0, sumAvg=0, countAvg=0;
+  el.innerHTML = subjects.map(s => {
+    const avg = calcSubjectAvg(s.id);
+    const st  = subjectStatus(avg);
+    if (st.cls === 'ok') aprovadas++;
+    else if (st.cls === 'risco' || st.cls === 'reprov') risco++;
+    if (avg !== null) { sumAvg += avg; countAvg++; }
+
+    const evalsHtml = EVAL_TYPES.map(et => {
+      const existing = state.grades.find(g => g.periodId===state.currentPeriod && g.subjectId===s.id && g.evalType===et);
+      const val = existing ? existing.grade : '';
+      return `<div class="bol-eval-row">
+        <div class="bol-eval-name">${et}</div>
+        <input type="number" class="bol-grade-input" min="0" max="10" step="0.1"
+          value="${val}" placeholder="–"
+          onchange="saveGrade('${s.id}','${et}',this.value)"
+          id="grade-${s.id}-${et.replace(' ','-')}">
+        <span class="bol-grade-max">/10</span>
+        <span class="bol-weight">peso ${EVAL_WEIGHTS[et]||1}</span>
+      </div>`;
+    }).join('');
+
+    let precisaHtml = '';
+    if (avg !== null && avg < 7.0 && avg >= PASSING_GRADE) {
+      const notasAte = state.grades.filter(g => g.periodId===state.currentPeriod && g.subjectId===s.id && g.evalType !== 'Exame Final' && g.grade !== null && g.grade !== '').length;
+      const totalEvals = EVAL_TYPES.filter(e => e !== 'Exame Final').length;
+      if (notasAte >= totalEvals) {
+        const needed = (7.0 * (EVAL_WEIGHTS['Exame Final'] + Object.values(EVAL_WEIGHTS).slice(0,-1).reduce((a,b)=>a+b,0)) - avg * Object.values(EVAL_WEIGHTS).slice(0,-1).reduce((a,b)=>a+b,0)) / EVAL_WEIGHTS['Exame Final'];
+        precisaHtml = `<div class="bol-precisa">Precisa de ${Math.max(0,needed).toFixed(1)} no Exame Final para aprovação.</div>`;
+      }
+    }
+
+    return `<div class="bol-subject">
+      <div class="bol-subject-header" style="background:${s.color}">
+        <div class="bol-subject-name">${s.name}</div>
+        <div class="bol-media-badge">${avg !== null ? avg.toFixed(1) : '–'}</div>
+      </div>
+      <div class="bol-subject-body">
+        ${evalsHtml}
+        <span class="bol-status ${st.cls}">${st.label}</span>
+        ${precisaHtml}
+      </div>
+    </div>`;
+  }).join('');
+
+  document.getElementById('bol-aprovadas').textContent = aprovadas;
+  document.getElementById('bol-risco').textContent = risco;
+  document.getElementById('bol-media-geral').textContent = countAvg ? (sumAvg/countAvg).toFixed(1) : '–';
+}
+
+function saveGrade(subjectId, evalType, value) {
+  const idx = state.grades.findIndex(g => g.periodId===state.currentPeriod && g.subjectId===subjectId && g.evalType===evalType);
+  const grade = value === '' ? null : parseFloat(value);
+  const weight = EVAL_WEIGHTS[evalType] || 1;
+  if (idx >= 0) { state.grades[idx].grade = grade; }
+  else { state.grades.push({ id:uid(), periodId:state.currentPeriod, subjectId, evalType, grade, weight, date:today() }); }
+  persist('grades');
+  renderBoletim();
+}
+
+// ═══════════════════════════════════════════════════════════
+//  ENTREGAS
+// ═══════════════════════════════════════════════════════════
+let entregaFilter = 'all';
+
+function renderEntregas() {
+  populateSubjectSelects('ent-subject');
+  let items = state.assignments.filter(a => a.periodId === state.currentPeriod);
+  const todayStr = today();
+
+  if (entregaFilter === 'pendente')  items = items.filter(a => !a.completed);
+  if (entregaFilter === 'concluida') items = items.filter(a => a.completed);
+  if (entregaFilter === 'urgente')   items = items.filter(a => !a.completed && daysUntil(a.dueDate) <= 3 && daysUntil(a.dueDate) >= 0);
+
+  items.sort((a,b) => a.dueDate.localeCompare(b.dueDate));
+
+  const el = document.getElementById('entrega-list');
+  if (!items.length) { el.innerHTML = '<div class="empty-state">Nenhuma entrega encontrada.</div>'; return; }
+
+  el.innerHTML = items.map(a => {
+    const d    = daysUntil(a.dueDate);
+    const past = d < 0;
+    const subj = currentSubjects().find(s => s.id === a.subjectId);
+    const cls  = a.completed ? 'concluida' : past ? 'atrasada' : 'pendente';
+    const countdownLabel = a.completed ? '✓ Concluída' : past ? `${Math.abs(d)}d de atraso` : d===0 ? 'Hoje!' : d===1 ? 'Amanhã' : `em ${d} dias`;
+    const countdownCls   = (!a.completed && d <= 3 && d >= 0) ? 'urgente' : 'ok';
+    return `<div class="entrega-item ${cls}" style="border-color:${subj?.color||'#999'}">
+      <div class="entrega-top">
+        <div class="entrega-titulo ${a.completed?'done':''}">${a.title}</div>
+        <span class="entrega-type-badge" style="background:${subj?.color||'#999'}">${a.type}</span>
+      </div>
+      <div class="entrega-meta">
+        <span class="entrega-disc" style="color:${subj?.color||'#999'}">${subj?.abbrev||''}</span>
+        <span class="entrega-date">📅 ${fmt(a.dueDate)}</span>
+        <span class="entrega-countdown ${countdownCls}">${countdownLabel}</span>
+      </div>
+      ${a.note ? `<div class="entrega-note">📝 ${a.note}</div>` : ''}
+      <div class="entrega-actions">
+        ${!a.completed
+          ? `<button class="entrega-btn done"  onclick="toggleEntrega('${a.id}')">✓ Concluir</button>`
+          : `<button class="entrega-btn undone" onclick="toggleEntrega('${a.id}')">↺ Reabrir</button>`}
+        <button class="entrega-btn del" onclick="deleteEntrega('${a.id}')">🗑 Remover</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function setEntregaFilter(f, btn) {
+  entregaFilter = f;
+  document.querySelectorAll('.filter-pill').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  renderEntregas();
+}
+
+function addEntrega() {
+  const title   = document.getElementById('ent-title').value.trim();
+  const subject = document.getElementById('ent-subject').value;
+  const type    = document.getElementById('ent-type').value;
+  const dueDate = document.getElementById('ent-date').value;
+  const weight  = document.getElementById('ent-weight').value;
+  const note    = document.getElementById('ent-note').value.trim();
+  if (!title || !dueDate) { alert('Preencha o título e a data de entrega.'); return; }
+  state.assignments.push({ id:uid(), periodId:state.currentPeriod, subjectId:subject, title, type, dueDate, weight: parseFloat(weight)||10, note, completed:false });
+  persist('assignments');
+  ['ent-title','ent-date','ent-weight','ent-note'].forEach(id => { const el=document.getElementById(id); if(el) el.value=''; });
+  renderEntregas();
+}
+
+function toggleEntrega(id) {
+  const a = state.assignments.find(x => x.id === id);
+  if (a) { a.completed = !a.completed; persist('assignments'); renderEntregas(); }
+}
+
+function deleteEntrega(id) {
+  state.assignments = state.assignments.filter(x => x.id !== id);
+  persist('assignments');
+  renderEntregas();
+}
+
+// ═══════════════════════════════════════════════════════════
+//  DISCIPLINAS EDITOR
+// ═══════════════════════════════════════════════════════════
+
+function buildColorPicker(rowId, valId) {
+  const row = document.getElementById(rowId);
+  const val = document.getElementById(valId);
+  if (!row) return;
+  const current = val?.value || SWATCHES[0];
+  row.innerHTML = SWATCHES.map(c =>
+    `<div class="color-swatch ${c===current?'selected':''}" style="background:${c}"
+      onclick="selectColor('${c}','${rowId}','${valId}')"></div>`
+  ).join('');
+}
+
+function selectColor(color, rowId, valId) {
+  const val = document.getElementById(valId);
+  if (val) val.value = color;
+  buildColorPicker(rowId, valId);
+}
+
+
+
+// ═══════════════════════════════════════════════════════════
+//  INIT — update renderInicio to show upcoming entregas
+// ═══════════════════════════════════════════════════════════
+
+// ═══════════ FASE 4: CONFIG, NOTAS EM PONTOS, DISCIPLINA, BACKUP ═══════════
+const DEFAULT_CONFIG={name:'Alexandra Cristina',inst:'Afya Unigranrio',course:'Direito',campus:'Duque de Caxias',maxScore:100,passScore:70,minFreq:75,examMax:100,examPass:70,examMode:'replace',
+ comps:[{id:'n1ta',unit:'N1',name:'TA',max:20},{id:'n1p',unit:'N1',name:'Prova',max:30},{id:'n2ta',unit:'N2',name:'TA',max:10},{id:'n2tp',unit:'N2',name:'Teste de Progresso',max:10},{id:'n2p',unit:'N2',name:'Prova',max:30}]};
+state.config=load('pj_config',null)||JSON.parse(JSON.stringify(DEFAULT_CONFIG));
+state.scores=load('pj_scores',{});
+state.conteudos=load('pj_conteudos',{});
+let discSel=null;
+const $=i=>document.getElementById(i);
+
+function syncDisciplines(){
+ Object.keys(DISCIPLINES).forEach(k=>delete DISCIPLINES[k]);
+ currentSubjects().forEach(s=>{DISCIPLINES[s.abbrev]={label:s.name+(s.archived?' (arquivada)':''),color:s.color,bg:s.color+'1A'};});
+ const o=activeSubjects().map(s=>`<option value="${esc(s.abbrev)}">${esc(s.abbrev)}</option>`).join('');
+ [['task-subject',''],['rev-subject',''],['exam-subject','<option value="Todas">Todas</option>'],['err-subject',''],['falta-hist-disc',''],['juris-subject',''],['esct-subject',''],['pom-subject',''],['read-subject',''],['fc-subject',''],['fc-filter-disc','<option value="">Todas as disciplinas</option>']].forEach(([id,x])=>{
+  const e=$(id); if(!e)return; const v=e.value, f=id==='fc-filter-disc';
+  e.innerHTML=(f?x:'')+o+(f?'':x); if([...e.options].some(q=>q.value===v))e.value=v;});
+}
+
+// ── Notas em pontos ──
+const sk=(sid,cid)=>`${state.currentPeriod}|${sid}|${cid}`;
+function subjTotals(sid){
+ let got=0,done=0,pending=0,max=0;
+ state.config.comps.forEach(c=>{max+=c.max;const v=state.scores[sk(sid,c.id)];
+  if(v===undefined||v===null)pending+=c.max;else{got+=v;done+=c.max;}});
+   state.evals.filter(e=>e.periodId===state.currentPeriod&&e.subjectId===sid).forEach(e=>{const w=e.weight;max+=w;if(e.score==null)pending+=w;else{got+=e.score/e.max*w;done+=w;}});
+ const r=n=>Math.round(n*100)/100;
+ return {got:r(got),done:r(done),pending:r(pending),max:r(max),ex:state.scores[sk(sid,'exame')]};
+}
+function subjStatus(t){
+ const C=state.config,P=C.passScore;
+ if(t.done===0)return {cls:'risco',label:'Sem notas'};
+ if(t.got>=P)return {cls:'ok',label:'✓ Meta de '+P+' pontos atingida'};
+ if(t.pending>0){const need=P-t.got;
+  if(need>t.pending)return {cls:'reprov',label:'✗ Exame Final provável',hint:`Mesmo com todos os ${t.pending} pontos restantes, chega a ${t.got+t.pending} de ${P}.`};
+  return {cls:'risco',label:'⚠ Em andamento',hint:`Precisa de ${need.toFixed(1)} dos ${t.pending} pontos restantes (${Math.round(need/t.pending*100)}% do que falta).`};}
+ if(t.ex==null)return {cls:'final',label:'Exame Final',hint:`Soma ${t.got}/${t.max}. Lance a nota do Exame Final.`};
+ const f=C.examMode==='avg'?(t.got+t.ex)/2:t.ex;
+ return f>=C.examPass?{cls:'ok',label:'✓ Aprovada no Exame ('+f.toFixed(1)+')'}:{cls:'reprov',label:'✗ Reprovada no Exame ('+f.toFixed(1)+')'};
+}
+function renderBoletim(){
+ evCapture();const subs=currentSubjects(),el=$('boletim-list'),C=state.config;
+ if(!subs.length){el.innerHTML='<div class="empty-state">Nenhuma disciplina neste período. Cadastre em “Discip.”.</div>';return;}
+ const units=[...new Set(C.comps.map(c=>c.unit))];let ap=0,rk=0,sum=0,n=0;
+ el.innerHTML=subs.map(s=>{
+  const t=subjTotals(s.id),st=subjStatus(t);
+  if(st.cls==='ok')ap++;else if(t.done>0)rk++;
+  if(t.done>0){sum+=t.got;n++;}
+  const rows=units.map(u=>`<div class="section-label">${u}</div>`+C.comps.filter(c=>c.unit===u).map(c=>`<div class="bol-eval-row"><div class="bol-eval-name">${c.name}</div><input type="number" class="bol-grade-input" min="0" max="${c.max}" step="0.5" value="${state.scores[sk(s.id,c.id)]??''}" placeholder="–" onchange="setScore('${s.id}','${c.id}',this.value,${c.max})"><span class="bol-grade-max">/${c.max}</span></div>`).join('')).join('');
+  const ex=(t.pending===0&&t.got<C.passScore)||t.ex!=null?`<div class="section-label">Exame Final</div><div class="bol-eval-row"><div class="bol-eval-name">Exame</div><input type="number" class="bol-grade-input" min="0" max="${C.examMax}" step="0.5" value="${t.ex??''}" placeholder="–" onchange="setScore('${s.id}','exame',this.value,${C.examMax})"><span class="bol-grade-max">/${C.examMax}</span></div>`:'';
+  return `<div class="bol-subject"><div class="bol-subject-header" style="background:${s.color}"><div class="bol-subject-name">${s.name}</div><div class="bol-media-badge">${t.got}/${t.max}</div></div><div class="bol-subject-body">${rows}${evSection(s)}${ex}<span class="bol-status ${st.cls}">${st.label}</span>${apHtml(t)}${st.hint?`<div class="bol-precisa">${st.hint}</div>`:''}</div></div>`;}).join('');
+ $('bol-perf').innerHTML='<div class="section-label">Desempenho por disciplina</div>'+subs.map(s=>{const t=subjTotals(s.id),pc=t.max?Math.min(100,t.got/t.max*100):0,a=t.done?Math.round(t.got/t.done*100):null;return `<div class="progress-disc"><div class="progress-disc-name" style="color:${s.color}">${esc(s.abbrev)}</div><div class="progress-disc-bar"><div class="progress-disc-fill" style="background:${s.color};width:${pc}%"></div></div><div class="progress-disc-min" style="min-width:84px">${t.got}/${t.max}${a!=null?' · '+a+'%':''}</div></div>`;}).join('')+'<div class="text-muted" style="font-size:.66rem;margin:.2rem 0 1rem">Barra = pontos obtidos do total possível. % = aproveitamento nas avaliações já lançadas.</div>';
+ $('bol-aprovadas').textContent=ap;$('bol-risco').textContent=rk;$('bol-media-geral').textContent=n?(sum/n).toFixed(1):'–';
+}
+function setScore(sid,cid,v,max){const k=sk(sid,cid);
+ if(v==='')delete state.scores[k];else state.scores[k]=Math.min(max,Math.max(0,parseFloat(v)));
+ persist('scores');renderBoletim();}
+
+// ── Configurações ──
+function renderConfig(){
+ const C=state.config;
+ [['name','name'],['inst','inst'],['course','course'],['campus','campus'],['max','maxScore'],['pass','passScore'],['freq','minFreq'],['exmax','examMax'],['expass','examPass'],['exmode','examMode']].forEach(([i,k])=>{$('cf-'+i).value=C[k];});
+ $('cf-comps').innerHTML=C.comps.map(c=>`<div class="disc-edit-item" style="border-color:var(--primary)"><div style="flex:1;font-size:.82rem"><b>${c.unit}</b> · ${c.name}</div><span class="text-muted">${c.max} pts</span><button class="disc-edit-del" onclick="delComp('${c.id}')">🗑</button></div>`).join('');
+ const tot=C.comps.reduce((a,c)=>a+c.max,0);
+ $('cf-total').textContent=tot===C.maxScore?`✓ Soma dos componentes: ${tot} pontos`:`⚠ A soma dos componentes (${tot}) difere da pontuação total (${C.maxScore}).`;
+ const lb=localStorage.getItem('pj_lastBackup');$('cf-last').textContent=lb?'Último backup: '+fmt(lb):'Nenhum backup exportado ainda.';
+}
+function saveConfig(){const C=state.config,g=i=>$('cf-'+i).value.trim(),n=(i,d)=>{const v=parseFloat(g(i));return isNaN(v)?d:v;};
+ C.name=g('name');C.inst=g('inst');C.course=g('course');C.campus=g('campus');C.maxScore=n('max',100);C.passScore=n('pass',70);C.minFreq=n('freq',75);C.examMax=n('exmax',100);C.examPass=n('expass',70);C.examMode=$('cf-exmode').value;
+ persist('config');renderConfig();alert('Configurações salvas ✅');}
+function addComp(){const unit=$('cf-cunit').value.trim(),name=$('cf-cname').value.trim(),max=parseFloat($('cf-cmax').value);
+ if(!unit||!name||isNaN(max)||max<=0){alert('Preencha etapa, nome e pontos.');return;}
+ state.config.comps.push({id:'c'+uid(),unit,name,max});persist('config');
+ ['cf-cunit','cf-cname','cf-cmax'].forEach(i=>$(i).value='');renderConfig();}
+function delComp(id){if(!confirm('Remover este componente? As notas já lançadas nele deixam de contar.'))return;
+ state.config.comps=state.config.comps.filter(c=>c.id!==id);persist('config');renderConfig();}
+
+// ── Backup ──
+function pjHash(t){let h=2166136261;for(let i=0;i<t.length;i++){h^=t.charCodeAt(i);h=Math.imul(h,16777619);}return (h>>>0).toString(16);}
+const pjBackupSkipped=[];
+function pjWarnSkipped(){if(pjBackupSkipped.length)alert('Atenção: '+pjBackupSkipped.length+' conjunto(s) de dados estava(m) ilegível(is) e não entrou(aram) no backup ('+pjBackupSkipped.map(k=>k.slice(3)).join(', ')+'). A cópia bruta foi guardada internamente.');}
+function backupJson(){
+ const data={};pjBackupSkipped.length=0;
+ pjKeys().filter(k=>!PJ_NOEXPORT.test(k)).forEach(k=>{const v=localStorage.getItem(k);try{JSON.parse(v);data[k]=v;}catch(e){pjBackupSkipped.push(k);}});
+ return JSON.stringify({app:'planner-juridico',v:2,schema:SCHEMA_VERSION,appVersion:APP_VERSION,date:new Date().toISOString(),keys:Object.keys(data).length,chk:pjHash(JSON.stringify(data)),data});}
+function exportBackup(){
+ let json;try{json=backupJson();JSON.parse(json);}catch(e){alert('Não foi possível gerar o backup. Nada foi alterado.');return;}
+ pjWarnSkipped();
+ const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([json],{type:'application/json'}));a.download='backup-planner-'+localToday()+'.json';
+ document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(a.href),4000);
+ if(confirm('O arquivo de backup foi salvo?\n\nToque em OK somente depois de vê-lo salvo. Se não apareceu, toque em Cancelar e use “Copiar backup (texto)”.'))localStorage.setItem('pj_lastBackup',localToday());
+ renderConfig();}
+function copyBackup(){
+ if(!navigator.clipboard){alert('Este navegador não permite copiar daqui. Use “Exportar backup”.');return;}
+ navigator.clipboard.writeText((()=>{const j=backupJson();pjWarnSkipped();return j;})()).then(()=>{localStorage.setItem('pj_lastBackup',localToday());renderConfig();alert('Backup copiado. Cole em um arquivo de texto e guarde.');},()=>alert('Não foi possível copiar. Use “Exportar backup”.'));}
+function importBackup(inp){
+ const f=inp.files[0];if(!f)return;const r=new FileReader();
+ r.onerror=()=>{inp.value='';alert('Não foi possível ler o arquivo. Nada foi alterado.');};
+ r.onload=()=>{inp.value='';
+  let d;try{d=JSON.parse(r.result);}catch(e){alert('Arquivo inválido: não é um JSON legível. Nada foi alterado.');return;}
+  if(!d||d.app!=='planner-juridico'||!d.data||typeof d.data!=='object'){alert('Este arquivo não é um backup do Planner Jurídico. Nada foi alterado.');return;}
+  if(d.v>2&&!confirm('Este backup foi gerado por uma versão mais nova do planner. Importar mesmo assim?'))return;
+  if(d.schema>SCHEMA_VERSION&&!confirm('Este backup usa uma estrutura de dados mais nova (versão '+d.schema+') que a deste planner. Importar mesmo assim?'))return;
+  const ents=Object.entries(d.data).filter(([k])=>!PJ_NOEXPORT.test(k));
+  for(const [k,v] of ents){
+   if(!/^pj_[A-Za-z0-9_]+$/.test(k)||typeof v!=='string'){alert('O backup contém uma chave inesperada ('+k+'). Nada foi alterado.');return;}
+   try{JSON.parse(v);}catch(e){alert('O backup contém dados ilegíveis em "'+k+'". Nada foi alterado.');return;}}
+  if(!ents.length){alert('O backup não contém dados. Nada foi alterado.');return;}
+  if(d.chk&&d.chk!==pjHash(JSON.stringify(d.data))&&!confirm('A verificação de integridade falhou: o arquivo pode ter sido modificado ou estar incompleto. Importar mesmo assim?'))return;
+  const cnt=t=>{try{const x=JSON.parse(t);return Array.isArray(x)?x.length:(x&&typeof x==='object'?Object.keys(x).length:null);}catch(e){return null;}};
+  const lines=[],less=[];
+  ents.forEach(([k,v])=>{const x=cnt(localStorage.getItem(k)),y=cnt(v);if(x!=null&&y!=null&&x!==y){lines.push(k.slice(3)+': '+x+' → '+y);if(y<x)less.push(k.slice(3));}});
+  let msg='Importar o backup de '+(d.date?new Date(d.date).toLocaleString('pt-BR'):'data desconhecida')+' ('+ents.length+' conjuntos de dados)?\n\nOs dados correspondentes neste aparelho serão SUBSTITUÍDOS pelos do backup. O que não existir no backup será mantido.';
+  if(lines.length)msg+='\n\nMudança de quantidade (atual → backup):\n'+lines.slice(0,8).join('\n')+(lines.length>8?'\n…':'');
+  if(less.length)msg+='\n\n⚠ O backup tem MENOS registros que o aparelho em: '+less.join(', ')+'.';
+  msg+='\n\nUma cópia de segurança dos dados atuais será criada antes.';
+  if(!confirm(msg))return;
+  if(!pjSnapshot('import')){alert('Não foi possível criar a cópia de segurança interna (armazenamento cheio). Exporte um backup dos dados atuais antes de importar. Nada foi alterado.');return;}
+  const snap=JSON.parse(localStorage.getItem('pj_snap_import')).data;
+  try{ents.forEach(([k,v])=>localStorage.setItem(k,v));}
+  catch(e){try{Object.entries(snap).forEach(([k,v])=>localStorage.setItem(k,v));ents.forEach(([k])=>{if(!(k in snap))localStorage.removeItem(k);});}catch(_){}
+   alert('A importação falhou e foi revertida para os dados anteriores. Nada foi perdido.');return;}
+  alert('Backup importado. O planner será recarregado.');location.reload();};
+ r.readAsText(f);}
+function snapInfo(n){try{const t=JSON.parse(localStorage.getItem('pj_snap_'+n));return t&&t.data?t:null;}catch(e){return null;}}
+function restoreSnap(n){
+ const t=snapInfo(n);if(!t){alert('Não há cópia interna disponível.');return;}
+ if(!confirm('Restaurar a cópia interna de '+new Date(t.date).toLocaleString('pt-BR')+'?\n\nOs dados correspondentes atuais serão substituídos. Uma cópia dos dados de agora será guardada antes.'))return;
+ if(!pjSnapshot('undo')){alert('Não foi possível guardar os dados atuais antes. Exporte um backup primeiro. Nada foi alterado.');return;}
+ try{Object.entries(t.data).forEach(([k,v])=>localStorage.setItem(k,v));}catch(e){alert('Falha ao restaurar. Exporte um backup e tente novamente.');return;}
+ alert('Cópia restaurada. O planner será recarregado.');location.reload();}
+function storageKB(){let n=0;pjKeys().forEach(k=>{n+=(k.length+(localStorage.getItem(k)||'').length)*2;});return Math.round(n/1024);}
+function renderSnaps(){const el=$('cf-snaps');if(!el)return;
+ el.innerHTML=`<div class="text-muted" style="margin-top:.6rem">Armazenamento usado: ~${storageKB()} KB (limite típico do navegador: ~5.000 KB)</div>`+
+ [['structure','antes da última alteração de períodos/disciplinas'],['update','antes da última atualização'],['import','antes da última importação'],['undo','antes da última restauração'],['migration_v3','antes da migração para a estrutura v3'],['migration','antes da migração para a estrutura v2']].map(([n,l])=>{const t=snapInfo(n);return t?`<button class="btn-primary" style="margin-top:.5rem;background:var(--muted)" onclick="restoreSnap('${n}')">Restaurar cópia interna ${l} (${new Date(t.date).toLocaleDateString('pt-BR')})</button>`:'';}).join('');}
+const _rcfg=renderConfig;renderConfig=function(){_rcfg();renderSnaps();};
+
+// avisos no topo
+function pjShowAlerts(){
+ const M={empty:'Nenhum dado salvo foi encontrado neste navegador/endereço. Se você já usava o planner, importe seu backup em ⚙️ Config → Importar backup.',
+  updated:'Planner atualizado. Uma cópia de segurança interna dos seus dados foi criada antes de qualquer alteração. Exporte também um backup em ⚙️ Config.',
+  'updated-nosnap':'Planner atualizado, mas não foi possível criar a cópia interna (dados grandes ou armazenamento cheio). Exporte um backup agora em ⚙️ Config.',
+  nostorage:'O navegador bloqueou o armazenamento: nada será salvo. Abra o planner em uma aba normal (não privada).',
+  migrated:'Estrutura dos dados atualizada (períodos e disciplinas editáveis, com vínculo por ID). Nada foi apagado e uma cópia interna foi criada antes.',
+  'migrated-nosnap':'Estrutura dos dados atualizada. Nada foi apagado, mas não foi possível criar a cópia interna. Exporte um backup em ⚙️ Config.',
+  'schema-newer':'Seus dados vêm de uma versão mais nova do planner. Para evitar perdas, a atualização automática foi pulada. Exporte um backup.'};
+ const msgs=[];
+ pjAlerts.forEach(a=>{if(a.startsWith('corrupt:'))msgs.push('Um dado ('+a.slice(11)+') estava ilegível. Guardei uma cópia bruta e iniciei essa parte vazia. Exporte um backup agora.');else if(M[a])msgs.push(M[a]);});
+ const USER=['tasks','events','evals','errors','scores','notes','exams','flashcards','revisions','terms','juris','escritorio','leituras','attendance','assignments','goals','qcount','conteudos'];
+ const hasData=USER.some(k=>{const v=localStorage.getItem('pj_'+k);return v&&v.length>4;});
+ const lb=localStorage.getItem('pj_lastBackup'),dd=lb?Math.floor((Date.now()-new Date(lb+'T00:00:00'))/864e5):null;
+ if(hasData&&(dd==null||dd>14))msgs.push(dd==null?'Você ainda não exportou nenhum backup. Faça isso em ⚙️ Config.':'Seu último backup tem '+dd+' dias. Exporte um novo em ⚙️ Config.');
+ const b=document.getElementById('pj-banner');if(!msgs.length||!b)return;
+ b.innerHTML=msgs.map(m=>'<div style="margin-bottom:.35rem">⚠️ '+m+'</div>').join('')+'<button class="rev-btn del" onclick="this.parentNode.style.display=\'none\'">Fechar aviso</button>';b.style.display='block';}
+
+// confirmação antes de excluir (envolve as funções de exclusão existentes)
+const _GUARD={deleteTask:'esta tarefa',deleteRev:'este tópico de revisão',deleteGoal:'esta meta',deleteExam:'esta avaliação',deleteError:'este registro de erro',deleteTerm:'este termo',deleteJuris:'esta jurisprudência',deleteEsct:'esta conexão',deleteReading:'esta leitura',deleteFc:'este flashcard',deleteAtt:'este registro de presença',deleteEntrega:'esta entrega',delCont:'este tema do conteúdo',delCompl:'esta atividade complementar'};
+Object.keys(_GUARD).forEach(n=>{const fn=window[n];if(typeof fn!=='function')return;window[n]=function(...a){if(!confirm('Excluir '+_GUARD[n]+'? Esta ação só poderá ser desfeita por um backup.'))return;return fn.apply(this,a);};});
+
+// ── Página da disciplina ──
+function openDisc(id){discSel=id;showPage('disc',null);}
+function renderDiscDetail(){
+ const s=currentSubjects().find(x=>x.id===discSel),el=$('disc-detail');
+ if(!s){el.innerHTML='<div class="card"><div class="empty-state">Abra uma disciplina pela aba “Discip.”.</div></div>';return;}
+ const ab=s.abbrev,t=subjTotals(s.id),st=subjStatus(t),at=attStats(ab),min=calcMins()[ab]||0,
+  er=prd('errors').filter(e=>e.subject===ab).length,fc=prd('flashcards').filter(f=>f.subject===ab&&!f.memorized).length,
+  rv=prd('revisions').filter(r=>r.subject===ab&&!r.consolidated).length,
+  en=state.assignments.filter(a=>a.periodId===state.currentPeriod&&a.subjectId===s.id&&!a.completed).length,
+  ct=state.conteudos[s.id]||[],pc=ct.length?Math.round(ct.filter(c=>c.s===2).length/ct.length*100):0,
+  box=(n,l)=>`<div class="bol-sum-box"><div class="bol-sum-num">${n}</div><div class="bol-sum-label">${l}</div></div>`;
+ el.innerHTML=`<div class="card" style="border-top:5px solid ${s.color}"><div class="card-title" style="color:${s.color}">${s.name}</div>
+ <div class="text-muted">${s.day||''} ${s.time||''}${s.professor?' · '+s.professor:''}</div>
+ <div class="bol-summary" style="margin-top:.75rem">${box(t.got+'/'+t.max,'Pontos')}${box(at.pct+'%','Frequência')}${box((min/60).toFixed(1)+'h','Estudadas')}</div>
+ <span class="bol-status ${st.cls}">${st.label}</span>${st.hint?`<div class="bol-precisa">${st.hint}</div>`:''}
+ <div class="bol-summary" style="margin-top:.75rem">${box(er,'Erros')}${box(rv,'Revisões')}${box(fc+' / '+en,'Cards / Entregas')}</div></div>
+ <div class="card"><div class="card-title">📖 Conteúdo programático <span class="text-muted">${pc}%</span></div>
+ <div class="progress-track" style="margin-bottom:.75rem"><div class="progress-fill" style="width:${pc}%"></div></div>
+ ${ct.map(c=>`<div class="goal-item"><button class="task-del" style="font-size:1.1rem" onclick="cycleCont('${c.id}')">${['☐','🔄','✅'][c.s]}</button><span class="goal-text ${c.s===2?'done':''}">${c.t}</span><button class="goal-del" onclick="delCont('${c.id}')">🗑</button></div>`).join('')||'<div class="empty-state">Nenhum tema cadastrado.</div>'}
+ <div class="form-row" style="margin-top:.5rem"><input class="form-input" id="ct-in" placeholder="Novo tema"><button class="btn-primary" style="width:auto;margin:0" onclick="addCont()">+</button></div></div>`;
+}
+function addCont(){const t=$('ct-in').value.trim();if(!t)return;(state.conteudos[discSel]=state.conteudos[discSel]||[]).push({id:uid(),t,s:0});persist('conteudos');renderDiscDetail();}
+function cycleCont(id){const c=(state.conteudos[discSel]||[]).find(x=>x.id===id);if(c){c.s=(c.s+1)%3;persist('conteudos');renderDiscDetail();}}
+function delCont(id){state.conteudos[discSel]=(state.conteudos[discSel]||[]).filter(x=>x.id!==id);persist('conteudos');renderDiscDetail();}
+
+
+// ═══════════ CURRÍCULO, HISTÓRICO E COMPLEMENTARES ═══════════
+state.hist=load('pj_hist',{});
+state.compl=load('pj_compl',[{id:'c1',date:'2026-05-21',name:'Movimenta: engajamento e protagonismo universitário',h:5}]);
+const CURR=`1 DIR-ARJ-33-1 - ARGUMENTAÇÃO E REDAÇÃO JURÍDICA
+1 DIR-CPTGE-66-1 - CIÊNCIA POLÍTICA E TEORIA GERAL DO ESTADO
+1 DIR-CRIMI-33-1 - CRIMINOLOGIA
+1 DIR-LHJI-66-1 - LABORATÓRIO DE HABILIDADES JURÍDICAS INICIAIS
+1 DIR-TCDS-66-1 - TEORIAS CRÍTICAS DO DIREITO E SOCIEDADE
+1 DIR-TGD-66-1 - TEORIA GERAL DO DIREITO
+3 DIR-DCOEP-66-1 - DIREITO CONSTITUCIONAL - ORGANIZAÇÃO DO ESTADO E SEUS PODERES
+3 DIR-DCTGO-33-1 - DIREITO CIVIL - TEORIA GERAL DAS OBRIGAÇÕES
+3 DIR-DHID-33-1 - DIREITOS HUMANOS, INCLUSÃO E DIVERSIDADE
+3 DIR-DPCGT-66-1 - DIREITO PROCESSUAL CIVIL - PARTE GERAL E TUTELA
+3 DIR-DPTEP-66-1 - DIREITO PENAL - TEORIA DA PENA E EXECUÇÃO PENAL
+3 DIR-IDSI-33-1 - INOVAÇÃO, DIREITO E SOCIEDADE DA INFORMAÇÃO
+3 DIR-PE II-82-1 - PROJETO DE EXTENSÃO II
+4 DIR-DCTCRC-66-1 - DIREITO CIVIL - TEORIA DOS CONTRATOS E RELAÇÃO DE CONSUMO
+4 DIR-DPCE I-66-1 - DIREITO PENAL - CRIMES EM ESPÉCIE I
+4 DIR-DPCIR-65-1 - DIREITO PROCESSUAL CIVIL - INSTRUÇÃO PROCESSUAL E RECURSOS
+4 DIR-PCON-49-1 - PROCESSO CONSTITUCIONAL
+4 DIR-PE III-66-1 - PROJETO DE EXTENSÃO III
+4 DIR-PSIADIR-33-1 - PSICOLOGIA APLICADA AO DIREITO
+5 DIR-DCCERC-66-1 - DIREITO CIVIL - CONTRATOS EM ESPÉCIE E RESPONSABILIDADE CIVIL
+5 DIR-DE-33-1 - DIREITO ELEITORAL
+5 DIR-DPCE II-49-1 - DIREITO PENAL - CRIMES EM ESPÉCIE II
+5 DIR-DPCTEP-66-1 - DIREITO PROCESSUAL CIVIL - TUTELA EXECUTIVA E PROCEDIMENTOS ESPECIAIS
+5 DIR-DTDI-66-1 - DIREITO DO TRABALHO - DIREITO INDIVIDUAL
+5 DIR-PE IV-66-1 - PROJETO DE EXTENSÃO IV
+6 DIR-DAOAA-66-1 - DIREITO ADMINISTRATIVO - ORGANIZAÇÃO E ATOS ADMINISTRATIVOS
+6 DIR-DCFAM-33-1 - DIREITO CIVIL - FAMÍLIAS
+6 DIR-DPPP IFIP-66-1 - DIREITO PROCESSUAL PENAL - INVESTIGAÇÃO E FASE INICIAL DO PROCESSO
+6 DIR-DTDC-33-1 - DIREITO DO TRABALHO - DIREITO COLETIVO
+6 DIR-ESTSUP I-66-1 - ESTÁGIO SUPERVISIONADO I - CLÍNICA DE DIREITOS HUMANOS
+6 DIR-PE V-82-1 - PROJETO DE EXTENSÃO V
+7 DIR-DAA-49-1 - DIREITO AMBIENTAL E AGRÁRIO
+7 DIR-DACAP-66-1 - DIREITO ADMINISTRATIVO - CONTRATOS E PROCESSOS
+7 DIR-DCSUC-33-1 - DIREITO CIVIL - SUCESSÕES
+7 DIR-DEETS-66-1 - DIREITO EMPRESARIAL - EMPRESÁRIO E TIPOS SOCIETÁRIOS
+7 DIR-DPPP PSR-66-1 - DIREITO PROCESSUAL PENAL - PROCEDIMENTOS, SENTENÇA E RECURSOS
+7 DIR-ESTSUP II-66-1 - ESTÁGIO SUPERVISIONADO II (PRÁTICA CRIMINAL E TRIBUNAL DO JÚRI)
+7 DIR-MASC-66-1 - MÉTODOS ADEQUADOS DE SOLUÇÕES DE CONFLITO
+8 DIR-DCDC-33-1 - DIREITO CIVIL - DIREITO DAS COISAS
+8 DIR-DEFRE-66-1 - DIREITO EMPRESARIAL - FALÊNCIA E RECUPERAÇÃO DE EMPRESA
+8 DIR-DPT-66-1 - DIREITO PROCESSUAL DO TRABALHO
+8 DIR-DTSFE-66-1 - DIREITO TRIBUTÁRIO E SISTEMA FINANCEIRO DO ESTADO
+8 DIR-ELET I-49-1 - ELETIVA I
+8 DIR-ESTSUP III-66-1 - ESTÁGIO SUPERVISIONADO III (PRÁTICA CÍVEL E CONSUMEIRISTA)
+8 DIR-TCC I-33-1 - TRABALHO DE CONCLUSÃO DE CURSO I
+9 DIR-DPREV-33-1 - DIREITO PREVIDENCIÁRIO
+9 DIR-DTNE-66-1 - DIREITO TRIBUTÁRIO - NORMAS ESPECÍFICAS
+9 DIR-ELET II-49-1 - ELETIVA II
+9 DIR-ESTSUP IV-66-1 - ESTÁGIO SUPERVISIONADO IV (PRÁTICA TRABALHISTA E PREVIDENCIÁRIA)
+9 DIR-TCC II-33-1 - TRABALHO DE CONCLUSÃO DE CURSO II
+9 DIR-TE I-66-1 - TÓPICOS ESPECIAIS I
+10 DIR-DIPP-33-1 - DIREITO INTERNACIONAL PÚBLICO E PRIVADO
+10 DIR-EDGA-66-1 - ÉTICA, DEONTOLOGIA E GESTÃO DA ADVOCACIA
+10 DIR-ELET III-49-1 - ELETIVA III
+10 DIR-ELET IV-49-1 - ELETIVA IV
+10 DIR-ESTSUP V-66-1 - ESTÁGIO SUPERVISIONADO V (PRÁTICAS DOS MÉTODOS ADEQUADOS DE SOLUÇÕES DE CONFLITOS E FAMÍLIA)
+10 DIR-TE II-66-1 - TÓPICOS ESPECIAIS II`;
+const SMALL=['de','da','do','das','dos','e','em','na','no','a','o','ao'];
+const ttl=n=>n.toLowerCase().split(' ').map((w,i)=>/^(i|ii|iii|iv|v)$/.test(w)?w.toUpperCase():(i&&SMALL.includes(w)?w:w.charAt(0).toUpperCase()+w.slice(1))).join(' ');
+function loadCurriculo(){
+ if(localStorage.getItem('pj_curr1'))return;
+ const by={},ch2={tgp:33,const:66,civil:66,penal:66,hist:33,ext:82},med={ARJ:85,CPTGE:90.5,CRIMI:92.5,LHJI:95,TCDS:82,TGD:85.5};
+ CURR.split('\n').forEach((l,i)=>{const k=l.indexOf(' - '),head=l.slice(0,k),f=parseInt(head),parts=head.slice(String(f).length+1).split('-'),ab=parts[1];
+  (by[f]=by[f]||[]).push({id:'c_'+ab.toLowerCase().replace(/\W/g,''),name:ttl(l.slice(k+3)),abbrev:ab,color:SWATCHES[(by[f]||[]).length%SWATCHES.length],day:'',time:'',professor:'',ch:+parts[2]});});
+ for(let q=1;q<=10;q++){state.periods[q]=state.periods[q]||{subjects:[]};
+  if(q===2)state.periods[2].subjects.forEach(x=>{if(x.ch==null)x.ch=ch2[x.id]||0;});
+  else if(!state.periods[q].subjects.length)state.periods[q].subjects=by[q]||[];}
+ state.hist[1]=state.hist[1]||{};state.periods[1].subjects.forEach(x=>{if(med[x.abbrev]!=null)state.hist[1][x.id]=med[x.abbrev];});
+ persist('periods');persist('hist');localStorage.setItem('pj_curr1','1');
+}
+loadCurriculo();
+const f2=n=>n.toFixed(2).replace('.',',');
+function renderGrad(){
+ let all=0,allW=0,html='';
+ for(const p of periodIds()){
+  const subs=state.periods[p]?.subjects||[],h=state.hist[p]||{},done=subs.length>0&&subs.every(x=>h[x.id]!=null);
+  let w=0,sw=0;subs.forEach(x=>{if(h[x.id]!=null){w+=x.ch||0;sw+=h[x.id]*(x.ch||0);}});all+=sw;allW+=w;
+  const tag=done?'✅ Concluído':state.periods[p].archived?'🗄 Arquivado':p===state.currentPeriod?'📍 Atual':'⏳ Futuro';
+  html+=`<details${p===state.currentPeriod?' open':''}><summary>${esc(periodName(p))}${state.periods[p].label?' · '+esc(state.periods[p].label):''} · ${tag}${w?' · média '+f2(sw/w):''} · ${subs.length} disc.</summary>`+subs.map(x=>`<div class="goal-item"><span class="goal-text">${x.name}<br><span class="text-muted">${x.ch||'?'}h</span></span><b style="color:var(--primary)">${h[x.id]!=null?f2(h[x.id]):''}</b></div>`).join('')+`<button class="btn-primary" style="margin:.25rem 0 .75rem" onclick="switchPeriod(${p});showPage('disciplinas',null)">Abrir este período</button></details>`;}
+ $('grad-list').innerHTML=html;$('grad-cr').textContent=allW?f2(all/allW):'–';
+ $('compl-total').textContent=state.compl.reduce((a,c)=>a+c.h,0)+'h';
+ $('compl-list').innerHTML=state.compl.map(c=>`<div class="goal-item"><span class="goal-text">${c.name}<br><span class="text-muted">${fmt(c.date)} · ${c.h}h</span></span><button class="goal-del" onclick="delCompl('${c.id}')">🗑</button></div>`).join('')||'<div class="empty-state">Nenhuma atividade.</div>';
+}
+function addCompl(){const name=$('cm-name').value.trim(),h=parseFloat($('cm-h').value),d=$('cm-date').value||today();
+ if(!name||isNaN(h)||h<=0){alert('Informe a atividade e as horas.');return;}
+ state.compl.push({id:uid(),date:d,name,h});persist('compl');$('cm-name').value='';$('cm-h').value='';renderGrad();}
+function delCompl(id){state.compl=state.compl.filter(c=>c.id!==id);persist('compl');renderGrad();}
+
+
+// ═══════════ CALENDÁRIO MENSAL (começa vazio; só exibe eventos cadastrados aqui) ═══════════
+state.events=load('pj_events',[]);
+const EV_TYPES={'Prova':'#C0392B','Trabalho':'#D35400','Entrega':'#1A6B9A','Seminário':'#B07A00','Revisão':'#7B5EA7','Outro':'#6B6B6B'};
+const MESES=['janeiro','fevereiro','março','abril','maio','junho','julho','agosto','setembro','outubro','novembro','dezembro'];
+const pad2=n=>String(n).padStart(2,'0'),ymd=(y,m,d)=>`${y}-${pad2(m+1)}-${pad2(d)}`;
+const esc=t=>String(t==null?'':t).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const localToday=()=>{const n=new Date();return ymd(n.getFullYear(),n.getMonth(),n.getDate());};
+let calY=new Date().getFullYear(),calM=new Date().getMonth(),calSel=localToday(),calEdit=null;
+
+function renderCalendario(){
+ const ty=$('ev-type');
+ if(!ty.options.length)ty.innerHTML=Object.keys(EV_TYPES).map(k=>`<option value="${k}">${k}</option>`).join('');
+ const sj=$('ev-subj'),cur=sj.value;
+ sj.innerHTML='<option value="">Sem disciplina</option>'+activeSubjects().map(x=>`<option value="${esc(x.abbrev)}">${esc(x.abbrev)}</option>`).join('');
+ if([...sj.options].some(o=>o.value===cur))sj.value=cur;
+ $('cal-title').textContent=MESES[calM]+' de '+calY;
+ $('cal-head').innerHTML=['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'].map(d=>`<div class="cal-dow">${d}</div>`).join('');
+ $('cal-legend').innerHTML=Object.entries(EV_TYPES).map(([k,c])=>`<div class="legend-item"><div class="legend-dot" style="background:${c}"></div>${k}</div>`).join('');
+ const first=new Date(calY,calM,1).getDay(),dim=new Date(calY,calM+1,0).getDate(),prev=new Date(calY,calM,0).getDate(),tdy=localToday();
+ let h='';
+ for(let i=0;i<42;i++){
+  let d=i-first+1,y=calY,m=calM,out=false;
+  if(d<1){d+=prev;m--;out=true;if(m<0){m=11;y--;}}
+  else if(d>dim){d-=dim;m++;out=true;if(m>11){m=0;y++;}}
+  const ds=ymd(y,m,d),evs=prd('events').filter(e=>e.date===ds);
+  h+=`<div class="cal-cell${out?' out':''}${ds===tdy?' today':''}${ds===calSel?' sel':''}" onclick="calPick('${ds}')">${d}<div class="cal-dots">${evs.slice(0,3).map(e=>`<span class="cal-dot" style="background:${EV_TYPES[e.type]||'#666'}"></span>`).join('')}${evs.length>3?'<span style="font-size:.5rem">+</span>':''}</div></div>`;
+ }
+ $('cal-grid').innerHTML=h;
+ renderCalDay();
+}
+function renderCalDay(){
+ const [y,m,d]=calSel.split('-');
+ $('cal-day-title').textContent=`${+d} de ${MESES[+m-1]} de ${y}`;
+ const evs=prd('events').filter(e=>e.date===calSel).sort((a,b)=>(a.time||'99').localeCompare(b.time||'99'));
+ $('cal-day-list').innerHTML=evs.map(e=>{const c=EV_TYPES[e.type]||'#666';
+  return `<div class="rev-item" style="border-color:${c}"><div class="rev-item-top"><div class="rev-topic">${esc(e.title)}</div><span class="rev-stage-badge" style="background:${c}">${esc(e.type)}</span></div><div class="rev-next">${e.time?'⏰ '+esc(e.time):''}${e.time&&e.subject?' · ':''}${esc(e.subject)}${e.note?'<br>📝 '+esc(e.note):''}</div><div class="rev-actions"><button class="rev-btn advance" onclick="editEvent('${e.id}')">Editar</button><button class="rev-btn del" onclick="deleteEvent('${e.id}')">Excluir</button></div></div>`;}).join('')||'<div class="empty-state">Nenhum evento neste dia.</div>';
+ if(!calEdit)$('ev-date').value=calSel;
+}
+function calNav(dm){calM+=dm;if(calM<0){calM=11;calY--;}if(calM>11){calM=0;calY++;}renderCalendario();}
+function calToday(){const n=new Date();calY=n.getFullYear();calM=n.getMonth();calSel=localToday();renderCalendario();}
+function calPick(ds){calSel=ds;const [y,m]=ds.split('-');calY=+y;calM=+m-1;renderCalendario();}
+function saveEvent(){
+ const title=$('ev-title').value.trim(),date=$('ev-date').value;
+ if(!title||!date){alert('Informe o título e a data.');return;}
+ const ev={title,type:$('ev-type').value,subject:$('ev-subj').value,...evRef($('ev-subj').value),date,time:$('ev-time').value,note:$('ev-note').value.trim()};
+ if(calEdit){Object.assign(state.events.find(e=>e.id===calEdit),ev);}else{state.events.push({id:uid(),...ev});}
+ persist('events');endEdit();calPick(date);
+}
+function endEdit(){calEdit=null;['ev-title','ev-time','ev-note'].forEach(i=>$(i).value='');$('cal-form-title').textContent='+ Novo evento';$('ev-save').textContent='Adicionar evento';$('ev-cancel').style.display='none';}
+function cancelEdit(){endEdit();renderCalDay();}
+function editEvent(id){
+ const e=state.events.find(x=>x.id===id);if(!e)return;calEdit=id;
+ $('ev-title').value=e.title;$('ev-type').value=e.type;$('ev-date').value=e.date;$('ev-time').value=e.time||'';$('ev-note').value=e.note||'';
+ const sj=$('ev-subj');if(e.subject&&![...sj.options].some(o=>o.value===e.subject))sj.add(new Option(e.subject,e.subject));sj.value=e.subject||'';
+ $('cal-form-title').textContent='✏️ Editando evento';$('ev-save').textContent='Salvar alterações';$('ev-cancel').style.display='block';
+ $('ev-title').scrollIntoView({behavior:'smooth',block:'center'});
+}
+function deleteEvent(id){if(!confirm('Excluir este evento?'))return;state.events=state.events.filter(e=>e.id!==id);if(calEdit===id)endEdit();persist('events');renderCalendario();}
+
+
+// ═══════════ AVALIAÇÕES POR DISCIPLINA (somam no mesmo cálculo do Boletim) ═══════════
+state.evals=load('pj_evals',[]);
+const EV2_TYPES=['Prova','Teste','Trabalho','Seminário','Atividade','Participação','Outro'];
+let evForm=null;
+function evCapture(){if(!evForm||!$('ev2-name'))return;evForm.draft={name:$('ev2-name').value,type:$('ev2-type').value,date:$('ev2-date').value,score:$('ev2-score').value,max:$('ev2-max').value,w:$('ev2-w').value};}
+function apHtml(t){let h='';
+ if(t.done>0){const a=t.got/t.done;h+=`<div class="bol-precisa">Aproveitamento: ${Math.round(a*100)}% (≈ ${f2(a*10)} em 10) nas avaliações já lançadas.</div>`;}
+ if(t.max>state.config.maxScore)h+=`<div class="bol-precisa" style="color:var(--danger)">⚠ A soma dos pesos (${t.max}) excede a pontuação total (${state.config.maxScore}).</div>`;
+ return h;}
+function evSection(s){
+ const list=state.evals.filter(e=>e.periodId===state.currentPeriod&&e.subjectId===s.id).sort((a,b)=>(a.date||'9999').localeCompare(b.date||'9999'));
+ let h='<div class="section-label">Avaliações cadastradas</div>';
+ h+=list.map(e=>`<div class="bol-eval-row" style="align-items:flex-start"><div style="flex:1;min-width:0"><div style="font-size:.82rem;font-weight:600">${esc(e.name)}</div><div class="text-muted" style="font-size:.68rem">${esc(e.type)}${e.date?' · '+fmt(e.date):''} · peso ${e.weight} · nota ${e.score!=null?e.score+'/'+e.max+' → '+(Math.round(e.score/e.max*e.weight*100)/100)+' pts':'–/'+e.max}</div></div><button class="rev-btn advance" onclick="evEdit('${e.id}')">Editar</button><button class="rev-btn del" onclick="evDel('${e.id}')">Excluir</button></div>`).join('');
+ if(!list.length&&!(evForm&&evForm.sid===s.id))h+='<div class="text-muted" style="margin-bottom:.4rem">Nenhuma avaliação cadastrada.</div>';
+ if(evForm&&evForm.sid===s.id){const d=evForm.draft||{};
+  h+=`<div class="add-box" style="margin-top:.6rem"><div class="add-box-title">${evForm.id?'✏️ Editar avaliação':'+ Nova avaliação'}</div>
+  <input class="form-input" id="ev2-name" placeholder="Nome (ex.: Seminário 1)" value="${esc(d.name||'')}" style="width:100%;margin-bottom:.5rem">
+  <div class="form-row"><select class="form-select" id="ev2-type">${EV2_TYPES.map(t=>`<option${t===d.type?' selected':''}>${t}</option>`).join('')}</select><input type="date" class="form-input" id="ev2-date" value="${esc(d.date||'')}"></div>
+  <div class="form-row" style="margin-top:.5rem"><input type="number" step="0.1" class="form-input" id="ev2-score" placeholder="Nota obtida" value="${esc(d.score??'')}"><input type="number" step="0.1" class="form-input" id="ev2-max" placeholder="Nota máx." value="${esc(d.max??'')}"><input type="number" step="0.1" class="form-input" id="ev2-w" placeholder="Peso (pts)" value="${esc(d.w??'')}"></div>
+  <div class="text-muted" style="font-size:.66rem;margin:.4rem 0">Peso = pontos que a avaliação vale na média final. Em branco, usa a nota máxima. Deixe a nota obtida em branco se ainda não houve correção.</div>
+  <button class="btn-primary" onclick="evSave()">Salvar</button><button class="btn-primary" style="margin-top:.5rem;background:var(--muted)" onclick="evClose()">Cancelar</button></div>`;}
+ else h+=`<button class="rev-btn advance" style="margin:.3rem 0 .6rem" onclick="evOpen('${s.id}')">+ Avaliação</button>`;
+ return h;}
+function evOpen(sid){evCapture();evForm={sid,id:null,draft:null};renderBoletim();}
+function evEdit(id){const e=state.evals.find(x=>x.id===id);if(!e)return;evCapture();evForm={sid:e.subjectId,id,draft:{name:e.name,type:e.type,date:e.date||'',score:e.score??'',max:e.max,w:e.weight}};renderBoletim();}
+function evClose(){evForm=null;renderBoletim();}
+function evSave(){
+ const name=$('ev2-name').value.trim(),max=parseFloat($('ev2-max').value),w=$('ev2-w').value,sc=$('ev2-score').value;
+ if(!name||isNaN(max)||max<=0){alert('Informe o nome e uma nota máxima maior que zero.');return;}
+ const weight=w===''?max:parseFloat(w);if(isNaN(weight)||weight<=0){alert('O peso deve ser maior que zero.');return;}
+ const score=sc===''?null:parseFloat(sc);if(score!==null&&(isNaN(score)||score<0||score>max)){alert('A nota obtida deve estar entre 0 e a nota máxima.');return;}
+ const rec={name,type:$('ev2-type').value,date:$('ev2-date').value,score,max,weight};
+ if(evForm.id)Object.assign(state.evals.find(x=>x.id===evForm.id),rec);else state.evals.push({id:uid(),periodId:state.currentPeriod,subjectId:evForm.sid,...rec});
+ persist('evals');evForm=null;renderBoletim();}
+function evDel(id){if(!confirm('Excluir esta avaliação?'))return;state.evals=state.evals.filter(x=>x.id!==id);if(evForm&&evForm.id===id)evForm=null;persist('evals');renderBoletim();}
+
+// ═══════════ ESQUEMA DOS DADOS — VERSÃO 2 ═══════════
+const SCHEMA_VERSION=3;
+function localISO(d){return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');}
+const weekKeyOf=w=>'p'+state.currentPeriod+':week-'+w;
+function findSubjByAbbrev(ab){
+ for(const q of [2,...periodIds().filter(x=>x!==2)]){const sj=(state.periods[q]?.subjects||[]).find(x=>x.abbrev===ab);if(sj)return {periodId:q,subjectId:sj.id};}
+ return null;}
+const subjRef=ab=>{const sj=currentSubjects().find(x=>x.abbrev===ab);return {subjectId:sj?sj.id:null,periodId:state.currentPeriod};};
+const evRef=a=>{const h=a?findSubjByAbbrev(a):null;return {subjectId:h?h.subjectId:null,periodId:a?(h?h.periodId:state.currentPeriod):null};};
+const MIG_LISTS=['tasks','revisions','exams','errors','juris','escritorio','leituras','flashcards','attendance'];
+function migrateData(){
+ const cur=parseInt(localStorage.getItem('pj_schema')||'1',10);
+ if(cur>SCHEMA_VERSION){pjAlerts.push('schema-newer');return;}
+ const miss=r=>r&&typeof r==='object'&&(r.subjectId===undefined||r.periodId===undefined);
+ const wk=o=>Object.keys(o||{}).filter(k=>/^week-\d+$/.test(k)&&!(('p2:'+k) in o));
+ let need=0;
+ MIG_LISTS.forEach(k=>(state[k]||[]).forEach(r=>{if(miss(r))need++;}));
+ (state.events||[]).forEach(r=>{if(miss(r))need++;});
+ need+=wk(state.notes).length+wk(state.goals).length;
+ need+=structNeed();
+ if(need>0){
+  pjAlerts.push(pjSnapshot('migration_v'+SCHEMA_VERSION)?'migrated':'migrated-nosnap');
+  const fix=(r,keepNull)=>{if(!miss(r))return;const ab=r.subject,h=(ab&&ab!=='Todas')?findSubjByAbbrev(ab):null;
+   r.subjectId=h?h.subjectId:null;r.periodId=h?h.periodId:(keepNull&&!ab?null:2);};
+  MIG_LISTS.forEach(k=>(state[k]||[]).forEach(r=>fix(r,false)));
+  (state.events||[]).forEach(r=>fix(r,true));
+  wk(state.notes).forEach(k=>{state.notes['p2:'+k]=state.notes[k];});
+  wk(state.goals).forEach(k=>{state.goals['p2:'+k]=JSON.parse(JSON.stringify(state.goals[k]));});
+  migrateStructure();persist('periods');
+  MIG_LISTS.concat(['events','notes','goals']).forEach(k=>persist(k));
+ }
+ try{localStorage.setItem('pj_schema',String(SCHEMA_VERSION));}catch(e){}
+}
+migrateData();
+
+// ═══════════ PERÍODOS E DISCIPLINAS EDITÁVEIS (esquema 3) ═══════════
+function periodIds(){return Object.keys(state.periods).map(Number).sort((a,b)=>a-b);}
+function periodName(q){const P=state.periods[q];return (P&&P.name)||(q+'º período');}
+function chipLabel(n){return n.replace(/\s*per[ií]odo\s*$/i,'');}
+function activeSubjects(){return currentSubjects().filter(x=>!x.archived);}
+function structSnap(){return pjSnapshot('structure')||confirm('Não foi possível criar a cópia de segurança interna (dados grandes ou armazenamento cheio). Exporte um backup antes. Continuar mesmo assim?');}
+function structNeed(){let n=0;Object.keys(state.periods).forEach(q=>{const P=state.periods[q];if(!P)return;
+ if(P.name===undefined||P.archived===undefined)n++;
+ (P.subjects||[]).forEach(x=>{if(x.periodId===undefined||x.archived===undefined||x.obs===undefined)n++;});});return n;}
+function migrateStructure(){const LBL={1:'2026/1',2:'2026/2'};
+ Object.keys(state.periods).forEach(q=>{const P=state.periods[q],n=+q;if(!P)return;
+  if(P.name===undefined)P.name=n+'º período';if(P.label===undefined)P.label=LBL[n]||'';if(P.archived===undefined)P.archived=false;
+  (P.subjects=P.subjects||[]).forEach(x=>{if(x.periodId===undefined)x.periodId=n;if(x.archived===undefined)x.archived=false;if(x.obs===undefined)x.obs='';});});}
+function buildPeriodBar(){
+ const bar=document.getElementById('period-bar');
+ bar.innerHTML='<span class="period-label">Período:</span>'+periodIds().filter(q=>!state.periods[q].archived||q===state.currentPeriod).map(q=>`<button class="period-chip ${q===state.currentPeriod?'active':''}" onclick="switchPeriod(${q})">${esc(chipLabel(periodName(q)))}${state.periods[q].archived?' 🗄':''}</button>`).join('')+'<button class="period-chip" onclick="showPage(\'disciplinas\',null)">⚙ Gerenciar</button>';
+}
+let perEdit=null,deEdit=null;
+function renderPeriodList(){
+ $('per-list').innerHTML=periodIds().map(q=>{const P=state.periods[q],ss=P.subjects||[],na=ss.filter(x=>x.archived).length,cur=q===state.currentPeriod;
+  return `<div class="disc-edit-item" style="border-color:${cur?'var(--primary)':'var(--border)'};flex-wrap:wrap;${P.archived?'opacity:.65':''}"><div style="flex:1;min-width:0"><div class="disc-edit-name">${esc(periodName(q))}${P.label?' · '+esc(P.label):''}</div><div class="disc-edit-day">${cur?'📍 Aberto · ':''}${P.archived?'🗄 Arquivado · ':''}${ss.length-na} disciplina(s)${na?' + '+na+' arquivada(s)':''}</div></div><button class="rev-btn advance" onclick="switchPeriod(${q})">Abrir</button><button class="rev-btn del" onclick="editPeriod(${q})">Editar</button><button class="rev-btn ${P.archived?'done':'del'}" onclick="togglePeriodArchive(${q})">${P.archived?'Reativar':'Arquivar'}</button></div>`;}).join('');
+}
+function savePeriod(){
+ const nm=$('per-name').value.trim(),lb=$('per-label').value.trim();
+ const dup=(name,self)=>periodIds().some(q=>q!==self&&periodName(q).toLowerCase()===name.toLowerCase());
+ if(perEdit!==null){
+  if(!nm){alert('Informe o nome do período.');return;}
+  if(dup(nm,perEdit)){alert('Já existe um período com esse nome.');return;}
+  if(!structSnap())return;
+  const P=state.periods[perEdit];P.name=nm;P.label=lb;persist('periods');endPeriodEdit();
+ }else{
+  const id=Math.max(0,...periodIds())+1,name=nm||(id+'º período');
+  if(dup(name,null)){alert('Já existe um período com esse nome.');return;}
+  if(!structSnap())return;
+  state.periods[id]={name,label:lb,archived:false,subjects:[]};persist('periods');endPeriodEdit();
+ }
+ buildPeriodBar();renderDisciplinas();}
+function endPeriodEdit(){perEdit=null;$('per-name').value='';$('per-label').value='';$('per-form-title').textContent='+ Novo período';$('per-save').textContent='Criar período';$('per-cancel').style.display='none';}
+function cancelPeriodEdit(){endPeriodEdit();}
+function editPeriod(q){const P=state.periods[q];if(!P)return;perEdit=q;$('per-name').value=periodName(q);$('per-label').value=P.label||'';
+ $('per-form-title').textContent='✏️ Editando período';$('per-save').textContent='Salvar alterações';$('per-cancel').style.display='block';$('per-name').scrollIntoView({behavior:'smooth',block:'center'});}
+function togglePeriodArchive(q){
+ const P=state.periods[q];if(!P)return;
+ if(!P.archived){
+  if(q===state.currentPeriod){alert('Este é o período aberto. Abra outro período antes de arquivá-lo.');return;}
+  if(!confirm('Arquivar "'+periodName(q)+'"?\n\nTodos os dados (disciplinas, notas, tarefas, faltas etc.) continuam salvos e acessíveis. Você pode reativar quando quiser.'))return;
+ }
+ if(!structSnap())return;
+ P.archived=!P.archived;persist('periods');buildPeriodBar();renderDisciplinas();}
+
+function renderDisciplinas(){
+ buildColorPicker('de-color-row','de-color-val');
+ if(deEdit&&!currentSubjects().some(s=>s.id===deEdit))endDiscEdit();
+ renderPeriodList();
+ const P=state.periods[state.currentPeriod];
+ $('disc-period-name').textContent=periodName(state.currentPeriod)+(P&&P.label?' · '+P.label:'');
+ const sh=$('disc-show-arch').checked,subs=currentSubjects().filter(x=>sh||!x.archived);
+ $('disc-edit-list').innerHTML=subs.map(x=>`<div class="disc-edit-item" style="border-color:${x.color};flex-wrap:wrap;${x.archived?'opacity:.65':''}"><div class="disc-edit-color" style="background:${x.color}"></div><div style="flex:1;min-width:0"><div class="disc-edit-name" style="cursor:pointer" onclick="openDisc('${x.id}')">${esc(x.name)} ›</div><div class="disc-edit-day">${esc(x.abbrev)}${x.archived?' · 🗄 arquivada':''}${x.day||x.time?' · '+esc(x.day||'')+' '+esc(x.time||''):''}${x.professor?' · '+esc(x.professor):''}</div>${x.obs?`<div class="disc-edit-day" style="font-style:italic">📝 ${esc(x.obs)}</div>`:''}</div><button class="rev-btn del" onclick="editDisc('${x.id}')">Editar</button><button class="rev-btn ${x.archived?'done':'del'}" onclick="toggleDiscArchive('${x.id}')">${x.archived?'Reativar':'Arquivar'}</button></div>`).join('')||'<div class="empty-state">Nenhuma disciplina neste período.</div>';
+}
+function autoAbbrev(name,subs){
+ const w=name.replace(/[–-]/g,' ').split(/\s+/).filter(t=>t.length>2&&!/^(de|da|do|das|dos|em|na|no)$/i.test(t));
+ const base=(w.map(t=>t[0]).join('').toUpperCase().slice(0,5))||name.slice(0,4).toUpperCase();
+ let a=base,i=2;while(subs.some(x=>x.abbrev.toLowerCase()===a.toLowerCase()))a=base+(i++);return a;}
+function newSubjectId(){let id;do{id='s_'+uid();}while(periodIds().some(q=>(state.periods[q].subjects||[]).some(x=>x.id===id)));return id;}
+function renameAbbrevRefs(id,old,nw){
+ MIG_LISTS.concat(['events']).forEach(k=>{let ch=false;(state[k]||[]).forEach(r=>{if(r.subjectId===id&&r.subject===old){r.subject=nw;ch=true;}});if(ch)persist(k);});
+ if(state.qcount&&state.qcount[old]){const a=state.qcount[old],b=state.qcount[nw]||{total:0,correct:0};state.qcount[nw]={total:a.total+b.total,correct:a.correct+b.correct};delete state.qcount[old];persist('qcount');}}
+function saveDisc(){
+ const name=$('de-name').value.trim();if(!name){alert('Informe o nome da disciplina.');return;}
+ const subs=state.periods[state.currentPeriod].subjects,cur=deEdit?subs.find(s=>s.id===deEdit):null;
+ let ab=$('de-abbrev').value.trim();
+ if(ab&&subs.some(x=>x.id!==deEdit&&x.abbrev.toLowerCase()===ab.toLowerCase())){alert('Já existe uma disciplina com a sigla "'+ab+'" neste período. Escolha outra sigla.');return;}
+ if(!ab)ab=cur?cur.abbrev:autoAbbrev(name,subs);
+ const data={name,abbrev:ab,day:$('de-day').value.trim(),time:$('de-time').value.trim(),professor:$('de-prof').value.trim(),obs:$('de-obs').value.trim(),color:$('de-color-val').value};
+ if(!structSnap())return;
+ if(cur){const old=cur.abbrev;Object.assign(cur,data);if(old!==ab)renameAbbrevRefs(cur.id,old,ab);}
+ else subs.push(Object.assign({id:newSubjectId(),periodId:state.currentPeriod,archived:false},data));
+ persist('periods');endDiscEdit();syncDisciplines();renderDisciplinas();}
+function endDiscEdit(){deEdit=null;['de-name','de-abbrev','de-day','de-time','de-prof','de-obs'].forEach(i=>$(i).value='');$('de-form-title').textContent='+ Nova Disciplina';$('de-save').textContent='Adicionar Disciplina';$('de-cancel').style.display='none';}
+function cancelDiscEdit(){endDiscEdit();}
+function editDisc(id){const x=currentSubjects().find(s=>s.id===id);if(!x)return;deEdit=id;
+ $('de-name').value=x.name;$('de-abbrev').value=x.abbrev;$('de-day').value=x.day||'';$('de-time').value=x.time||'';$('de-prof').value=x.professor||'';$('de-obs').value=x.obs||'';
+ $('de-color-val').value=x.color;buildColorPicker('de-color-row','de-color-val');
+ $('de-form-title').textContent='✏️ Editando disciplina';$('de-save').textContent='Salvar alterações';$('de-cancel').style.display='block';$('de-name').scrollIntoView({behavior:'smooth',block:'center'});}
+function toggleDiscArchive(id){const x=currentSubjects().find(s=>s.id===id);if(!x)return;
+ if(!x.archived&&!confirm('Arquivar "'+x.name+'"?\n\nNotas, avaliações, tarefas, faltas e demais registros continuam salvos e acessíveis. A disciplina deixa de aparecer nas listas de cadastro. Você pode reativar quando quiser.'))return;
+ if(!structSnap())return;
+ x.archived=!x.archived;persist('periods');if(deEdit===id)endDiscEdit();syncDisciplines();renderDisciplinas();}
+
+// ═══════════ FILTRO POR PERÍODO NAS TELAS DE REGISTROS ═══════════
+function inPeriod(r){return r.periodId==null||Number(r.periodId)===Number(state.currentPeriod);}
+function prd(n){return (state[n]||[]).filter(inPeriod);}
+
+function renderUpcomingEntregas() {
+  const upcoming = state.assignments
+    .filter(a => a.periodId === state.currentPeriod && !a.completed && daysUntil(a.dueDate) >= 0 && daysUntil(a.dueDate) <= 7)
+    .sort((a,b) => a.dueDate.localeCompare(b.dueDate));
+  const el = document.getElementById('upcoming-exams-list');
+  const ea = document.getElementById('exams-alert');
+  const examItems = prd('exams').filter(e => { const d=daysUntil(e.date); return d>=0&&d<=14; }).sort((a,b)=>a.date.localeCompare(b.date));
+  const allItems = [...examItems.map(e=>({...e,_type:'exam'})), ...upcoming.map(a=>({...a,_type:'assignment'}))];
+  allItems.sort((a,b) => (a.date||a.dueDate).localeCompare(b.date||b.dueDate));
+  if (allItems.length) {
+    ea.style.display='block';
+    el.innerHTML = allItems.map(item => {
+      if (item._type === 'exam') {
+        const d=daysUntil(item.date);
+        return `<div class="suggestion-item" style="border-color:${discColor(item.subject)}">
+          <span class="suggestion-badge" style="background:${discColor(item.subject)}">📅 ${item.subject}</span>
+          <span class="suggestion-text">${item.name}</span>
+          <span class="suggestion-time" style="color:${d<=3?'#C0392B':'inherit'}">${d===0?'Hoje!':d===1?'Amanhã':'em '+d+' dias'}</span>
+        </div>`;
+      } else {
+        const d=daysUntil(item.dueDate);
+        const subj=currentSubjects().find(s=>s.id===item.subjectId);
+        return `<div class="suggestion-item" style="border-color:${subj?.color||'#999'}">
+          <span class="suggestion-badge" style="background:${subj?.color||'#999'}">📌 ${subj?.abbrev||''}</span>
+          <span class="suggestion-text">${item.title}</span>
+          <span class="suggestion-time" style="color:${d<=3?'#C0392B':'inherit'}">${d===0?'Hoje!':d===1?'Amanhã':'em '+d+' dias'}</span>
+        </div>`;
+      }
+    }).join('');
+  } else { ea.style.display='none'; }
+}
+
+// ═══════════════════════════════════════════════════════════
+//  INIT
+// ═══════════════════════════════════════════════════════════
+document.addEventListener('DOMContentLoaded', () => {
+  pjShowAlerts();
+  syncDisciplines();
+  buildPeriodBar();
+  renderInicio();
+});
+
+// Override renderInicio to also show upcoming entregas
+const _origRenderInicio = renderInicio;
+renderInicio = function() { _origRenderInicio(); renderUpcomingEntregas(); renderDashQuick(); };
+// ═══════════ DASHBOARD: VISÃO RÁPIDA ═══════════
+function renderDashQuick(){
+ const el=document.getElementById('dash-quick'); if(!el)return;
+ const td=today(),subs=currentSubjects(),hist=state.hist||{};
+ let w=0,sw=0,dn=0,tot=0,totCh=0,doneCh=0;
+ for(const p of periodIds()){const ss=state.periods[p]?.subjects||[],h=hist[p]||{};
+  ss.forEach(x=>{tot++;totCh+=x.ch||0;if(h[x.id]!=null){dn++;doneCh+=x.ch||0;w+=x.ch||0;sw+=h[x.id]*(x.ch||0);}});}
+ const cr=w?f2(sw/w):'–',gp=totCh?Math.round(doneCh/totCh*100):(tot?Math.round(dn/tot*100):0);
+ const pend=prd('tasks').filter(t=>!t.completed&&t.date<=td).sort((a,b)=>a.date.localeCompare(b.date));
+ const late=pend.filter(t=>t.date<td).length;
+ const cd=d=>d<0?(-d)+'d de atraso':d===0?'Hoje!':d===1?'Amanhã':'em '+d+' dias';
+ const row=(c,b,txt,r,red)=>`<div class="suggestion-item" style="border-color:${c}"><span class="suggestion-badge" style="background:${c}">${b}</span><span class="suggestion-text">${txt}</span><span class="suggestion-time" style="color:${red?'#C0392B':'inherit'}">${r}</span></div>`;
+ const none=m=>`<div class="text-muted" style="margin-bottom:.5rem">${m}</div>`;
+ const ex=prd('exams').filter(e=>daysUntil(e.date)>=0).sort((a,b)=>a.date.localeCompare(b.date)).slice(0,3);
+ const en=state.assignments.filter(a=>a.periodId===state.currentPeriod&&!a.completed).sort((a,b)=>a.dueDate.localeCompare(b.dueDate)).slice(0,3);
+ const chips=activeSubjects().map(s=>{const t=subjTotals(s.id);return `<span class="suggestion-badge" style="background:${s.color};cursor:pointer;font-size:.7rem;padding:.3rem .65rem" onclick="openDisc('${s.id}')">${s.abbrev} · ${t.got}/${t.max}</span>`;}).join('');
+ el.innerHTML=`<div class="stats-row" style="margin-top:0">
+  <div class="stat-box"><div class="stat-num">${cr}</div><div class="stat-label">Média geral (CR)</div></div>
+  <div class="stat-box"><div class="stat-num">${pend.length}</div><div class="stat-label">Tarefas pendentes${late?' · '+late+' atrasada'+(late>1?'s':''):''}</div></div>
+  <div class="stat-box"><div class="stat-num">${gp}%</div><div class="stat-label">Graduação</div></div></div>
+  <div class="section-label" style="margin-top:1rem">Disciplinas atuais · ${esc(periodName(state.currentPeriod))}</div>
+  ${chips?`<div style="display:flex;flex-wrap:wrap;gap:.4rem;margin-bottom:.75rem">${chips}</div>`:none('Nenhuma disciplina cadastrada neste período.')}
+  <div class="section-label">Próximas provas</div>
+  ${ex.length?ex.map(e=>{const d=daysUntil(e.date);return row(discColor(e.subject),e.subject,e.name,cd(d),d<=3);}).join(''):none('Nenhuma prova cadastrada em “Provas”.')}
+  <div class="section-label" style="margin-top:.5rem">Próximas entregas</div>
+  ${en.length?en.map(a=>{const d=daysUntil(a.dueDate),sj=subs.find(x=>x.id===a.subjectId),c=sj?sj.color:'#999';return row(c,sj?sj.abbrev:'–',a.title,cd(d),d<=3);}).join(''):none('Nenhuma entrega pendente.')}
+  <div class="section-label" style="margin-top:.5rem">Tarefas pendentes</div>
+  ${pend.length?pend.slice(0,3).map(t=>row(discColor(t.subject),t.subject,t.description||'(sem descrição)',t.date<td?'atrasada':'hoje',t.date<td)).join(''):none('Nenhuma tarefa pendente. 🎉')}
+  <div class="section-label" style="margin-top:.5rem">Progresso da graduação</div>
+  <div class="progress-track"><div class="progress-fill" style="width:${gp}%"></div></div>
+  <div class="progress-dates"><span>${dn} de ${tot} disciplinas concluídas</span><span>${doneCh}h de ${totCh}h</span></div>`;
+}
+
+</script>
+</body>
+</html>
