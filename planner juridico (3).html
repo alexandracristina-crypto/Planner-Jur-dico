@@ -1088,6 +1088,8 @@ details{margin-bottom:.6rem}summary{cursor:pointer;font-weight:700;font-size:.85
     <select class="form-select" id="sim-disc" onchange="renderSim()" style="width:100%;max-width:100%;box-sizing:border-box"></select>
     <div id="sim-fields" style="margin-top:0.5rem"></div>
     <div id="sim-result" style="margin-top:0.75rem"></div>
+    <div class="section-label" style="margin-top:1.25rem">📈 Evolução por período · leitura apenas</div>
+    <div id="bol-evolucao"></div>
   </div>
 </div>
 
@@ -1169,6 +1171,8 @@ details{margin-bottom:.6rem}summary{cursor:pointer;font-weight:700;font-size:.85
   <div class="card">
     <div class="card-title">🗓 Controle de Faltas</div>
     <p class="text-muted" style="margin-bottom:1rem; font-size:0.78rem">A lei exige <strong>75% de presença</strong>. Registre cada aula para acompanhar seu saldo de faltas por disciplina.</p>
+    <div class="section-label">Data do registro (em branco = hoje)</div>
+    <input type="date" class="form-input date-input" id="falta-date" style="width:100%; margin-bottom:0.75rem">
     <div id="falta-disc-list"></div>
   </div>
   <div class="card">
@@ -2247,8 +2251,9 @@ function renderFaltas() {
   const el = document.getElementById('falta-disc-list');
   el.innerHTML = Object.entries(DISCIPLINES).map(([k, d]) => {
     const s = attStats(k);
-    const alertClass = s.pct >= 85 ? 'ok' : s.pct >= 75 ? 'warn' : 'danger';
-    const alertLabel = s.pct >= 85 ? '✓ OK' : s.pct >= 75 ? '⚠ Atenção' : '🚨 Risco';
+    const mf = Number(state.config?.minFreq || 75), okLim = mf + 10;
+    const alertClass = s.pct >= okLim ? 'ok' : s.pct >= mf ? 'warn' : 'danger';
+    const alertLabel = s.pct >= okLim ? '✓ OK' : s.pct >= mf ? '⚠ Atenção' : '🚨 Risco';
     return `<div class="falta-card" style="background:${d.bg}; border-color:${d.color}">
       <div class="falta-header">
         <div class="falta-name" style="color:${d.color}">${d.label}</div>
@@ -2271,7 +2276,8 @@ function renderFaltas() {
 }
 
 function addAtt(disc, present) {
-  state.attendance.push({ id: uid(), date: today(), subject: disc, present });
+  const inp = document.getElementById('falta-date');
+  state.attendance.push({ id: uid(), date: (inp && inp.value) || today(), subject: disc, present });
   persist('attendance');
   renderFaltas();
 }
@@ -2935,6 +2941,7 @@ function deleteDisc(id) {
   state.periods[state.currentPeriod].subjects = state.periods[state.currentPeriod].subjects.filter(s => s.id !== id);
   persist('periods');
   renderDisciplinas();
+  renderFaltas();
 }
 
 // ═══════════════════════════════════════════════════════════
@@ -2960,12 +2967,12 @@ function syncDisciplines(){
 }
 
 // ── Notas em pontos ──
-const sk=(sid,cid)=>`${state.currentPeriod}|${sid}|${cid}`;
-function subjTotals(sid){
+const sk=(sid,cid,per)=>`${per||state.currentPeriod}|${sid}|${cid}`;
+function subjTotals(sid,per){
  let got=0,done=0,pending=0,max=0;
- state.config.comps.forEach(c=>{max+=c.max;const v=state.scores[sk(sid,c.id)];
+ state.config.comps.forEach(c=>{max+=c.max;const v=state.scores[sk(sid,c.id,per)];
   if(v===undefined||v===null)pending+=c.max;else{got+=v;done+=c.max;}});
- return {got,done,pending,max,ex:state.scores[sk(sid,'exame')]};
+ return {got,done,pending,max,ex:state.scores[sk(sid,'exame',per)]};
 }
 function subjStatus(t){
  const C=state.config,P=C.passScore;
@@ -2978,7 +2985,24 @@ function subjStatus(t){
  const f=C.examMode==='avg'?(t.got+t.ex)/2:t.ex;
  return f>=C.examPass?{cls:'ok',label:'✓ Aprovada no Exame ('+f.toFixed(1)+')'}:{cls:'reprov',label:'✗ Reprovada no Exame ('+f.toFixed(1)+')'};
 }
+// ── Evolução por período: agrega o que já está lançado; não altera cálculo algum ──
+function renderEvolucao(){
+ const el=$('bol-evolucao');if(!el)return;
+ const C=state.config;
+ const rows=Object.keys(state.periods).map(Number).sort((a,b)=>a-b).map(p=>{
+  const subs=state.periods[p].subjects||[];
+  const vals=subs.map(s=>subjTotals(s.id,p)).filter(x=>x.done>0).map(x=>x.got);
+  if(!vals.length)return null;
+  return {p,nome:state.periods[p].name||('Período '+p),qtd:subs.length,lanc:vals.length,
+   media:vals.reduce((a,b)=>a+b,0)/vals.length,aprov:vals.filter(v=>v>=C.passScore).length};
+ }).filter(Boolean);
+ if(!rows.length){el.innerHTML='<div class="empty-state">Lance notas para acompanhar a evolução.</div>';return;}
+ el.innerHTML=rows.map(r=>`<div class="bol-eval-row"><div class="bol-eval-name">${r.nome}${r.p===state.currentPeriod?' <b>· atual</b>':''}</div><span class="bol-grade-max">${r.media.toFixed(1)}/${C.maxScore}</span></div>
+  <div class="bol-precisa" style="margin:-.25rem 0 .5rem">${r.lanc} de ${r.qtd} disciplina(s) com nota · ${r.aprov} com ${C.passScore}+ pontos</div>`).join('');
+}
+
 function renderBoletim(){
+ renderEvolucao();
  const subs=currentSubjects(),el=$('boletim-list'),C=state.config;
  if(!subs.length){el.innerHTML='<div class="empty-state">Nenhuma disciplina neste período. Cadastre em “Discip.”.</div>';renderSim();return;}
  const units=[...new Set(C.comps.map(c=>c.unit))];let ap=0,rk=0,sum=0,n=0;
