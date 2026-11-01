@@ -2724,91 +2724,18 @@ function populateSubjectSelects(...ids) {
 // ═══════════════════════════════════════════════════════════
 const PASSING_GRADE = 5.0;
 const EVAL_WEIGHTS  = { 'N1':3, 'N2':4, 'Checkpoint':1.5, 'Exame Final':5 };
-// Único cálculo de média ponderada do app: usado pelo boletim e pelas avaliações.
+// Único cálculo de média ponderada do app (avaliações e desempenho por disciplina).
 function weightedAverage(itens){
  const sumW=itens.reduce((a,e)=>a+(e.weight||1),0);
  if(!sumW)return null;
  return itens.reduce((a,e)=>a+parseFloat(e.grade||0)*(e.weight||1),0)/sumW;}
 
-function calcSubjectAvg(subjectId) {
-  const evals = state.grades.filter(g => g.periodId === state.currentPeriod && g.subjectId === subjectId && g.grade !== null && g.grade !== '');
-  if (!evals.length) return null;
-  // Weighted average if all have weights, else simple
-  const withWeight = evals.filter(e => e.weight);
-  if (withWeight.length === evals.length) return weightedAverage(evals);
-  return evals.reduce((a,e) => a + parseFloat(e.grade||0), 0) / evals.length;
-}
-
+// Semáforo de desempenho (escala 0–10) usado no painel das avaliações.
 function subjectStatus(avg) {
   if (avg === null)    return { cls:'risco',  label:'Sem notas' };
   if (avg >= 7.0)      return { cls:'ok',     label:'✓ Aprovada' };
   if (avg >= PASSING_GRADE) return { cls:'risco', label:'⚠ Em risco' };
   return { cls:'reprov', label:'✗ Abaixo da média' };
-}
-
-function renderBoletim() {
-  const subjects = currentSubjects();
-  const el = document.getElementById('boletim-list');
-  if (!subjects.length) { el.innerHTML = '<div class="empty-state">Nenhuma disciplina cadastrada para este período.</div>'; return; }
-
-  let aprovadas=0, risco=0, sumAvg=0, countAvg=0;
-  el.innerHTML = subjects.map(s => {
-    const avg = calcSubjectAvg(s.id);
-    const st  = subjectStatus(avg);
-    if (st.cls === 'ok') aprovadas++;
-    else if (st.cls === 'risco' || st.cls === 'reprov') risco++;
-    if (avg !== null) { sumAvg += avg; countAvg++; }
-
-    const evalsHtml = EVAL_TYPES.map(et => {
-      const existing = state.grades.find(g => g.periodId===state.currentPeriod && g.subjectId===s.id && g.evalType===et);
-      const val = existing ? existing.grade : '';
-      return `<div class="bol-eval-row">
-        <div class="bol-eval-name">${et}</div>
-        <input type="number" class="bol-grade-input" min="0" max="10" step="0.1"
-          value="${val}" placeholder="–"
-          onchange="saveGrade('${s.id}','${et}',this.value)"
-          id="grade-${s.id}-${et.replace(' ','-')}">
-        <span class="bol-grade-max">/10</span>
-        <span class="bol-weight">peso ${EVAL_WEIGHTS[et]||1}</span>
-      </div>`;
-    }).join('');
-
-    let precisaHtml = '';
-    if (avg !== null && avg < 7.0 && avg >= PASSING_GRADE) {
-      const notasAte = state.grades.filter(g => g.periodId===state.currentPeriod && g.subjectId===s.id && g.evalType !== 'Exame Final' && g.grade !== null && g.grade !== '').length;
-      const totalEvals = EVAL_TYPES.filter(e => e !== 'Exame Final').length;
-      if (notasAte >= totalEvals) {
-        const needed = (7.0 * (EVAL_WEIGHTS['Exame Final'] + Object.values(EVAL_WEIGHTS).slice(0,-1).reduce((a,b)=>a+b,0)) - avg * Object.values(EVAL_WEIGHTS).slice(0,-1).reduce((a,b)=>a+b,0)) / EVAL_WEIGHTS['Exame Final'];
-        precisaHtml = `<div class="bol-precisa">Precisa de ${Math.max(0,needed).toFixed(1)} no Exame Final para aprovação.</div>`;
-      }
-    }
-
-    return `<div class="bol-subject">
-      <div class="bol-subject-header" style="background:${s.color}">
-        <div class="bol-subject-name">${s.name}</div>
-        <div class="bol-media-badge">${avg !== null ? avg.toFixed(1) : '–'}</div>
-      </div>
-      <div class="bol-subject-body">
-        ${evalsHtml}
-        <span class="bol-status ${st.cls}">${st.label}</span>
-        ${precisaHtml}
-      </div>
-    </div>`;
-  }).join('');
-
-  document.getElementById('bol-aprovadas').textContent = aprovadas;
-  document.getElementById('bol-risco').textContent = risco;
-  document.getElementById('bol-media-geral').textContent = countAvg ? (sumAvg/countAvg).toFixed(1) : '–';
-}
-
-function saveGrade(subjectId, evalType, value) {
-  const idx = state.grades.findIndex(g => g.periodId===state.currentPeriod && g.subjectId===subjectId && g.evalType===evalType);
-  const grade = value === '' ? null : parseFloat(value);
-  const weight = EVAL_WEIGHTS[evalType] || 1;
-  if (idx >= 0) { state.grades[idx].grade = grade; }
-  else { state.grades.push({ id:uid(), periodId:state.currentPeriod, subjectId, evalType, grade, weight, date:today() }); }
-  persist('grades');
-  renderBoletim();
 }
 
 // ═══════════════════════════════════════════════════════════
