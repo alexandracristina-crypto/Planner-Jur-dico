@@ -1,0 +1,28 @@
+services:
+  web:
+    image: node:22-alpine
+    working_dir: /app
+    command: ["node", "serve.mjs"]
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./:/app
+    environment:
+      - PORT=3000
+      - APP_FILE=planner_juridico (1).html
+      - BASE44_PREVIEW_MODE
+    restart: on-failure
+    labels:
+      base44.project: "Planner Jurídico"
+      base44.kind: "web"
+      base44.port: "3000"
+    healthcheck:
+      test:
+        - CMD
+        - node
+        - -e
+        - "fetch('http://127.0.0.1:3000/').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
