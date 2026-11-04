@@ -778,6 +778,12 @@ details{margin-bottom:.6rem}summary{cursor:pointer;font-weight:700;font-size:.85
     <div class="card-title">✅ Checklist Diário</div>
     <div class="section-label">Data</div>
     <input type="date" class="date-input" id="task-date">
+    <div class="filter-row" id="task-view-row">
+      <button class="filter-pill active" onclick="setTaskView('dia',this)">Dia</button>
+      <button class="filter-pill" onclick="setTaskView('semana',this)">Semana</button>
+      <button class="filter-pill" onclick="setTaskView('mes',this)">Mês</button>
+      <button class="filter-pill" onclick="setTaskView('atrasadas',this)">Atrasadas</button>
+    </div>
     <div id="task-list"><div class="empty-state">Nenhuma tarefa para esta data.</div></div>
 
     <div class="add-box" style="margin-top:0.75rem">
@@ -802,6 +808,7 @@ details{margin-bottom:.6rem}summary{cursor:pointer;font-weight:700;font-size:.85
           <option value="EAD">EAD</option>
         </select>
         <input type="number" class="form-input" id="task-duration" placeholder="min" value="30" style="width:65px; flex:none">
+        <select class="form-select" id="task-priority" style="max-width:110px"><option>Baixa</option><option selected>Média</option><option>Alta</option></select>
       </div>
       <button class="btn-primary" onclick="addTask()">Adicionar</button>
     </div>
@@ -922,13 +929,18 @@ details{margin-bottom:.6rem}summary{cursor:pointer;font-weight:700;font-size:.85
 <!-- ══ AVALIAÇÕES ══ -->
 <div id="page-avaliacoes" class="page">
   <div class="card">
+    <div class="card-title">🎯 Desempenho por disciplina</div>
+    <div id="exam-perf"><div class="empty-state">Cadastre uma avaliação para ver o desempenho.</div></div>
+  </div>
+  <div class="card">
     <div class="card-title">📋 Rastreador de Avaliações</div>
     <div id="exam-list"><div class="empty-state">Nenhuma avaliação cadastrada.</div></div>
 
     <div class="add-box" style="margin-top:0.75rem">
-      <div class="add-box-title">+ Nova Avaliação</div>
+      <div class="add-box-title" id="exam-form-title">+ Nova Avaliação</div>
       <input type="text" class="form-input" id="exam-name" placeholder="Nome (ex.: N1, Checkpoint, Prova Final)" style="width:100%; margin-bottom:0.5rem">
       <div class="form-row">
+        <select class="form-select" id="exam-tipo" onchange="examDefaults()"></select>
         <select class="form-select" id="exam-subject">
           <option value="TGP">TGP</option>
           <option value="D. Const.">D. Const.</option>
@@ -938,14 +950,21 @@ details{margin-bottom:.6rem}summary{cursor:pointer;font-weight:700;font-size:.85
           <option value="Extensão">Extensão</option>
           <option value="Todas">Todas</option>
         </select>
-        <input type="date" class="form-input date-input" id="exam-date" style="flex:1">
       </div>
-      <input type="text" class="form-input" id="exam-note" placeholder="Observação (opcional)" style="width:100%; margin-bottom:0.5rem; margin-top:0.5rem">
-      <button class="btn-primary" onclick="addExam()">Adicionar</button>
+      <div class="form-row" style="margin-top:0.5rem">
+        <input type="date" class="form-input date-input" id="exam-date" style="flex:1">
+        <input type="number" class="form-input" id="exam-grade" min="0" step="0.1" placeholder="Nota obtida" style="width:38%">
+        <input type="number" class="form-input" id="exam-gradeMax" min="0.1" step="0.1" value="10" placeholder="Nota máx." style="width:30%">
+      </div>
+      <div class="form-row" style="margin-top:0.5rem">
+        <input type="number" class="form-input" id="exam-weight" min="0.1" step="0.1" placeholder="Peso" style="width:30%">
+        <input type="text" class="form-input" id="exam-note" placeholder="Observação (opcional)" style="flex:1">
+      </div>
+      <button class="btn-primary" id="exam-save" onclick="addExam()" style="margin-top:0.5rem">Adicionar</button>
+      <button class="btn-primary" id="exam-cancel" onclick="endExamEdit()" style="display:none;margin-top:0.5rem;background:var(--muted)">Cancelar edição</button>
     </div>
   </div>
 </div>
-
 <!-- ══ ERROS ══ -->
 <div id="page-erros" class="page">
   <div class="card">
@@ -1048,11 +1067,15 @@ details{margin-bottom:.6rem}summary{cursor:pointer;font-weight:700;font-size:.85
   <div class="add-box"><div class="form-row"><input class="form-input" id="cf-cunit" placeholder="Etapa (N1)" style="max-width:90px"><input class="form-input" id="cf-cname" placeholder="Nome (TA, Prova…)"><input type="number" class="form-input" id="cf-cmax" placeholder="pts" style="max-width:70px"></div><button class="btn-primary" onclick="addComp()">Adicionar componente</button></div>
  </div>
  <div class="card"><div class="card-title">💾 Backup</div>
-  <p class="text-muted" style="font-size:.78rem;margin-bottom:.5rem">Os dados ficam apenas neste navegador. Limpar os dados do navegador ou trocar de aparelho os apaga. Exporte um backup com frequência.</p>
+  <p class="text-muted" style="font-size:.78rem;margin-bottom:.5rem">Os dados ficam apenas neste navegador. Limpar os dados do navegador ou trocar de aparelho os apaga. Exporte um backup com frequência. Ao importar, o arquivo é <b>mesclado</b>: seus dados atuais são mantidos e registros iguais não são duplicados.</p>
   <div id="cf-last" class="text-muted" style="margin-bottom:.5rem"></div>
   <button class="btn-primary" onclick="exportBackup()">Exportar backup</button>
   <label class="btn-primary" style="display:block;text-align:center;margin-top:.5rem;cursor:pointer">Importar backup<input type="file" accept=".json,application/json" style="display:none" onchange="importBackup(this)"></label>
   <button class="btn-primary" style="margin-top:.5rem;background:var(--muted)" onclick="copyBackup()">Copiar backup (texto)</button>
+  <div class="section-label" style="margin-top:1.1rem">🛟 Pontos de recuperação</div>
+  <p class="text-muted" style="font-size:.78rem;margin-bottom:.5rem">Cópias locais guardadas neste navegador (as 5 mais recentes). Use antes de importar ou de mudanças grandes. Não substituem o backup exportado.</p>
+  <div id="cf-snaps"></div>
+  <button class="btn-primary" style="margin-top:.5rem" onclick="mkSnapshot()">Criar ponto de recuperação</button>
  </div>
 </div>
 <div id="page-disc" class="page"><div id="disc-detail"></div></div>
@@ -1067,6 +1090,13 @@ details{margin-bottom:.6rem}summary{cursor:pointer;font-weight:700;font-size:.85
       <div class="bol-sum-box"><div class="bol-sum-num" id="bol-media-geral">–</div><div class="bol-sum-label">Média geral</div></div>
     </div>
     <div id="boletim-list"></div>
+    <div class="section-label" style="margin-top:1.25rem">🧪 Simulador de notas · não altera o boletim</div>
+    <p class="text-muted" style="font-size:0.75rem;margin-bottom:0.5rem">Escolha a disciplina e teste notas hipotéticas nas avaliações que ainda não têm nota real.</p>
+    <select class="form-select" id="sim-disc" onchange="renderSim()" style="width:100%;max-width:100%;box-sizing:border-box"></select>
+    <div id="sim-fields" style="margin-top:0.5rem"></div>
+    <div id="sim-result" style="margin-top:0.75rem"></div>
+    <div class="section-label" style="margin-top:1.25rem">📈 Evolução por período · leitura apenas</div>
+    <div id="bol-evolucao"></div>
   </div>
 </div>
 
@@ -1119,7 +1149,7 @@ details{margin-bottom:.6rem}summary{cursor:pointer;font-weight:700;font-size:.85
     <p class="text-muted" style="margin-bottom:1rem; font-size:0.78rem">Gerencie as disciplinas de cada período. As alterações refletem em todo o planner.</p>
     <div id="disc-edit-list"></div>
     <div class="add-box" style="margin-top:0.75rem">
-      <div class="add-box-title">+ Nova Disciplina</div>
+      <div class="add-box-title" id="de-form-title">+ Nova Disciplina</div>
       <div class="form-row">
         <input type="text" class="form-input" id="de-name"   placeholder="Nome completo" style="flex:2">
         <input type="text" class="form-input" id="de-abbrev" placeholder="Sigla" style="flex:1; max-width:80px">
@@ -1129,10 +1159,16 @@ details{margin-bottom:.6rem}summary{cursor:pointer;font-weight:700;font-size:.85
         <input type="text" class="form-input" id="de-time" placeholder="Horário" style="flex:1">
       </div>
       <input type="text" class="form-input" id="de-prof" placeholder="Professor(a)" style="width:100%; margin:0.5rem 0">
+      <input type="number" class="form-input" id="de-ch" placeholder="Carga horária (h)" style="width:100%; margin-bottom:0.5rem">
+      <div class="form-row">
+        <select class="form-select" id="de-mode" style="flex:1"><option>Presencial</option><option>EAD</option></select>
+        <select class="form-select" id="de-sit" style="flex:1"><option value="">Situação…</option><option>Cursando</option><option>Concluída</option><option>Futura</option><option>Pendente</option></select>
+      </div>
       <div class="section-label">Cor</div>
       <div class="color-picker-row" id="de-color-row"></div>
       <input type="hidden" id="de-color-val" value="#7B5EA7">
-      <button class="btn-primary" onclick="addDiscEdit()">Adicionar Disciplina</button>
+      <button class="btn-primary" id="de-save" onclick="addDiscEdit()">Adicionar Disciplina</button>
+      <button class="btn-primary" id="de-cancel" style="display:none;background:var(--muted);margin-top:.5rem" onclick="cancelDiscEdit()">Cancelar edição</button>
     </div>
   </div>
 </div>
@@ -1142,6 +1178,8 @@ details{margin-bottom:.6rem}summary{cursor:pointer;font-weight:700;font-size:.85
   <div class="card">
     <div class="card-title">🗓 Controle de Faltas</div>
     <p class="text-muted" style="margin-bottom:1rem; font-size:0.78rem">A lei exige <strong>75% de presença</strong>. Registre cada aula para acompanhar seu saldo de faltas por disciplina.</p>
+    <div class="section-label">Data do registro (em branco = hoje)</div>
+    <input type="date" class="form-input date-input" id="falta-date" style="width:100%; margin-bottom:0.75rem">
     <div id="falta-disc-list"></div>
   </div>
   <div class="card">
@@ -1444,8 +1482,12 @@ function load(key, def) {
   catch { return def; }
 }
 function save(key, val) {
-  try { localStorage.setItem(key, JSON.stringify(val)); } catch {}
+  try { localStorage.setItem(key, JSON.stringify(val)); }
+  catch { warnSaveFailure(); }
 }
+// Falha de gravação = risco de perder dados: avisa uma vez.
+function warnSaveFailure(){if(warnSaveFailure.shown)return;warnSaveFailure.shown=true;
+ alert('Atenção: o navegador não conseguiu salvar os dados (armazenamento cheio ou bloqueado).\n\nExporte um backup em ⚙️ Config e libere espaço antes de continuar.');}
 
 let state = {
   tasks:    load('pj_tasks', []),
@@ -1639,11 +1681,42 @@ function renderHoje() {
   renderTaskList();
 }
 
+let taskView = 'dia';
+function setTaskView(v, btn) {
+  taskView = v;
+  document.querySelectorAll('#task-view-row .filter-pill').forEach(b => b.classList.remove('active'));
+  if (btn) btn.classList.add('active');
+  renderTaskList();
+}
+
+// Prazo da tarefa no período correspondente (usa o período gravado ou o da disciplina)
+function taskPeriodOf(t) {
+  if (t.period != null) return t.period;
+  const per = Object.keys(state.periods).find(p => (state.periods[p].subjects || []).some(s => s.abbrev === t.subject));
+  return per != null ? Number(per) : state.currentPeriod;
+}
+
 function renderTaskList() {
-  const date = document.getElementById('task-date').value;
-  const tasks = state.tasks.filter(t => t.date === date);
+  const date = document.getElementById('task-date').value || today();
+  const tdy = today();
+  let tasks = [...state.tasks].filter(t => t.date);
+  if (taskView === 'dia') tasks = tasks.filter(t => t.date === date);
+  else if (taskView === 'semana') {
+    const d0 = new Date(date + 'T12:00'), d1 = new Date(d0);
+    d1.setDate(d1.getDate() + 6);
+    const end = ymd(d1.getFullYear(), d1.getMonth(), d1.getDate());
+    tasks = tasks.filter(t => t.date >= date && t.date <= end);
+  }
+  else if (taskView === 'mes') { const ym = date.slice(0, 7); tasks = tasks.filter(t => t.date.slice(0, 7) === ym); }
+  else tasks = tasks.filter(t => !t.completed && t.date < tdy).sort((a, b) => a.date.localeCompare(b.date));
+  if (taskView !== 'atrasadas') tasks.sort((a, b) => a.date.localeCompare(b.date) || (a.completed ? 1 : 0) - (b.completed ? 1 : 0));
+
   const el = document.getElementById('task-list');
-  if (!tasks.length) { el.innerHTML = '<div class="empty-state">Nenhuma tarefa para esta data.</div>'; return; }
+  if (!tasks.length) {
+    el.innerHTML = '<div class="empty-state">' + (taskView === 'dia' ? 'Nenhuma tarefa para esta data.' : taskView === 'atrasadas' ? 'Nenhuma tarefa atrasada. 🎉' : 'Nenhuma tarefa neste intervalo.') + '</div>';
+    return;
+  }
+  const prioColor = p => p === 'Alta' ? 'var(--danger)' : p === 'Baixa' ? 'var(--muted)' : '#B7791F';
   el.innerHTML = tasks.map(t => `
     <div class="task-item ${t.completed?'done':''}" id="ti-${t.id}">
       <div class="task-check ${t.completed?'checked':''}" onclick="toggleTask('${t.id}')"></div>
@@ -1652,6 +1725,9 @@ function renderTaskList() {
         <div class="task-meta">
           <span class="task-badge" style="background:${discColor(t.subject)}">${t.subject}</span>
           &nbsp;${t.type} · ${t.duration} min
+          <span style="color:${prioColor(t.priority)}; font-weight:700">&nbsp;· ${t.priority || 'Média'}</span>
+          ${taskView !== 'dia' ? `&nbsp;· ${fmt(t.date)}` : ''}
+          ${!t.completed && t.date < tdy ? ' <b style="color:var(--danger)">· atrasada</b>' : ''}
         </div>
       </div>
       <button class="task-del" onclick="deleteTask('${t.id}')">🗑</button>
@@ -1664,8 +1740,9 @@ function addTask() {
   const subj = document.getElementById('task-subject').value;
   const type = document.getElementById('task-type').value;
   const dur  = parseInt(document.getElementById('task-duration').value) || 30;
+  const prio = document.getElementById('task-priority')?.value || 'Média';
   if (!desc) { alert('Preencha a descrição da tarefa.'); return; }
-  state.tasks.push({ id: uid(), date, subject: subj, type, description: desc, duration: dur, completed: false });
+  state.tasks.push({ id: uid(), date, period: state.currentPeriod, subject: subj, type, description: desc, duration: dur, priority: prio, completed: false });
   persist('tasks');
   document.getElementById('task-desc').value = '';
   renderTaskList();
@@ -1677,6 +1754,7 @@ function toggleTask(id) {
 }
 
 function deleteTask(id) {
+  if (!confirm('Excluir esta tarefa?')) return;
   state.tasks = state.tasks.filter(x => x.id !== id);
   persist('tasks');
   renderTaskList();
@@ -1835,6 +1913,7 @@ function consolidateRev(id) {
 }
 
 function deleteRev(id) {
+  if (!confirm('Excluir esta revisão?')) return;
   state.revisions = state.revisions.filter(x => x.id !== id);
   persist('revisions');
   renderRevisoes();
@@ -1929,6 +2008,7 @@ function toggleGoal(key, id) {
 }
 
 function deleteGoal(key, id) {
+  if (!confirm('Excluir esta meta?')) return;
   if (state.goals[key]) {
     state.goals[key] = state.goals[key].filter(x => x.id !== id);
     persist('goals');
@@ -1969,46 +2049,128 @@ function renderCronograma() {
 // ═══════════════════════════════════════════════════════════
 //  AVALIAÇÕES
 // ═══════════════════════════════════════════════════════════
+// ── Avaliações e notas ──
+let examEdit = null;
+
+function examWeight(e){return parseFloat(e.weight)||1;}
+function examMax(e){const m=parseFloat(e.gradeMax);return m>0?m:10;}
+function hasGrade(e){return e.grade!==null&&e.grade!==undefined&&e.grade!=='';}
+function examDefaults(){const t=$('exam-tipo').value;$('exam-weight').value=EVAL_WEIGHTS[t]||1;if(!$('exam-gradeMax').value)$('exam-gradeMax').value=10;}
+
+// Média ponderada da disciplina na escala 0–10, com o mesmo cálculo do boletim.
+function examAvg(subjectKey){
+ const itens=state.exams.filter(e=>e.subject===subjectKey&&hasGrade(e))
+  .map(e=>({grade:parseFloat(e.grade)/examMax(e)*10,weight:examWeight(e)}));
+ return itens.length?weightedAverage(itens):null;}
+
+function renderExamPerf(){
+ const el=$('exam-perf');if(!el)return;
+ const grupos={};
+ state.exams.forEach(e=>{(grupos[e.subject]=grupos[e.subject]||[]).push(e);});
+ const chaves=Object.keys(grupos);
+ if(!chaves.length){el.innerHTML='<div class="empty-state">Cadastre uma avaliação para ver o desempenho.</div>';return;}
+ el.innerHTML=chaves.map(k=>{
+  const itens=grupos[k],comNota=itens.filter(hasGrade),avg=examAvg(k),st=subjectStatus(avg);
+  return `<div style="display:flex;justify-content:space-between;align-items:center;gap:.5rem;padding:.45rem 0;border-bottom:1px solid var(--border)">
+   <div style="min-width:0">
+    <div style="font-size:.82rem;font-weight:700;color:${discColor(k)}">${k}</div>
+    <div class="text-muted" style="font-size:.7rem">${comNota.length} com nota · ${itens.length-comNota.length} pendente(s)</div>
+   </div>
+   <div style="text-align:right">
+    <div style="font-weight:700;font-size:.85rem">${avg!==null?avg.toFixed(1):'–'}<span class="text-muted" style="font-size:.7rem">/10</span></div>
+    <span class="bol-status ${st.cls}">${st.label}</span>
+   </div></div>`;}).join('');}
+
 function renderAvaliacoes() {
-  const sorted = [...state.exams].sort((a,b) => a.date.localeCompare(b.date));
-  const el = document.getElementById('exam-list');
-  if (!sorted.length) { el.innerHTML = '<div class="empty-state">Nenhuma avaliação cadastrada.</div>'; return; }
-  el.innerHTML = sorted.map(e => {
-    const d = daysUntil(e.date);
-    const isPast = d < 0;
-    return `<div class="exam-item ${isPast?'exam-past':''}" style="border-color:${discColor(e.subject)}; background:${discBg(e.subject)}">
-      <div class="exam-info">
-        <div class="exam-name">${e.name}</div>
-        <div class="exam-sub" style="color:${discColor(e.subject)}">${e.subject}</div>
-        ${e.note ? `<div class="exam-note">${e.note}</div>` : ''}
-      </div>
-      <div class="exam-date-wrap">
-        <div class="exam-date">${fmt(e.date)}</div>
-        <div class="exam-days" style="color:${!isPast&&d<=3?'#C0392B':'var(--muted)'}">
-          ${isPast ? 'Realizada' : d===0 ? 'Hoje!' : d===1 ? 'Amanhã' : 'em '+d+' dias'}
-        </div>
-        <button class="exam-del" onclick="deleteExam('${e.id}')">🗑 Remover</button>
-      </div>
-    </div>`;
-  }).join('');
+ const tipoEl=$('exam-tipo');
+ if(tipoEl&&tipoEl.options.length!==EVAL_TYPES.length)
+  tipoEl.innerHTML=EVAL_TYPES.map(t=>`<option value="${t}">${t}</option>`).join('');
+ if(tipoEl&&!$('exam-weight').value)examDefaults();
+
+ const sorted=[...state.exams].sort((a,b)=>a.date.localeCompare(b.date));
+ const el=document.getElementById('exam-list');
+ if(!sorted.length){el.innerHTML='<div class="empty-state">Nenhuma avaliação cadastrada.</div>';}
+ else el.innerHTML=sorted.map(e=>{
+  const d=daysUntil(e.date),isPast=d<0,max=examMax(e);
+  const nota=hasGrade(e)?(e.grade+'/'+max):'sem nota';
+  return `<div class="exam-item ${isPast?'exam-past':''}" style="border-color:${discColor(e.subject)}; background:${discBg(e.subject)}">
+   <div class="exam-info">
+    <div class="exam-name">${e.name}</div>
+    <div class="exam-sub" style="color:${discColor(e.subject)}">${e.subject}${e.tipo?' · '+e.tipo:''}</div>
+    <div class="exam-note" style="font-style:normal">Nota: <b>${nota}</b> · peso ${examWeight(e)}</div>
+    ${e.note?`<div class="exam-note">${e.note}</div>`:''}
+   </div>
+   <div class="exam-date-wrap">
+    <div class="exam-date">${fmt(e.date)}</div>
+    <div class="exam-days" style="color:${!isPast&&d<=3?'#C0392B':'var(--muted)'}">
+     ${isPast?'Realizada':d===0?'Hoje!':d===1?'Amanhã':'em '+d+' dias'}
+    </div>
+    <button class="exam-del" onclick="editExam('${e.id}')">✏️ Editar</button>
+    <button class="exam-del" onclick="deleteExam('${e.id}')">🗑 Remover</button>
+   </div>
+  </div>`;}).join('');
+
+ renderExamPerf();
+}
+
+function editExam(id){
+ const e=state.exams.find(x=>x.id===id);if(!e)return;
+ examEdit=id;
+ $('exam-name').value=e.name||'';
+ if(e.subject)$('exam-subject').value=e.subject;
+ $('exam-date').value=e.date||'';
+ $('exam-note').value=e.note||'';
+ if(e.tipo)$('exam-tipo').value=e.tipo;
+ $('exam-grade').value=hasGrade(e)?e.grade:'';
+ $('exam-gradeMax').value=examMax(e);
+ $('exam-weight').value=examWeight(e);
+ $('exam-form-title').textContent='✏️ Editando avaliação';
+ $('exam-save').textContent='Salvar alterações';
+ $('exam-cancel').style.display='block';
+ $('exam-name').scrollIntoView({block:'center'});
+}
+
+function endExamEdit(){
+ examEdit=null;
+ ['exam-name','exam-date','exam-note','exam-grade'].forEach(i=>{const el=$(i);if(el)el.value='';});
+ if($('exam-gradeMax'))$('exam-gradeMax').value=10;
+ examDefaults();
+ $('exam-form-title').textContent='+ Nova Avaliação';
+ $('exam-save').textContent='Adicionar';
+ $('exam-cancel').style.display='none';
 }
 
 function addExam() {
-  const name = document.getElementById('exam-name').value.trim();
-  const subj = document.getElementById('exam-subject').value;
-  const date = document.getElementById('exam-date').value;
-  const note = document.getElementById('exam-note').value.trim();
-  if (!name || !date) { alert('Preencha o nome e a data.'); return; }
-  state.exams.push({ id: uid(), name, subject: subj, date, note });
-  persist('exams');
-  document.getElementById('exam-name').value = '';
-  document.getElementById('exam-date').value = '';
-  document.getElementById('exam-note').value = '';
-  renderAvaliacoes();
+ const name=document.getElementById('exam-name').value.trim();
+ const subj=document.getElementById('exam-subject').value;
+ const date=document.getElementById('exam-date').value;
+ const note=document.getElementById('exam-note').value.trim();
+ const tipo=document.getElementById('exam-tipo').value;
+ const gRaw=document.getElementById('exam-grade').value.trim();
+ const mRaw=document.getElementById('exam-gradeMax').value.trim();
+ const wRaw=document.getElementById('exam-weight').value.trim();
+ const gradeMax=mRaw===''?10:parseFloat(mRaw);
+ const weight=wRaw===''?(EVAL_WEIGHTS[tipo]||1):parseFloat(wRaw);
+ const grade=gRaw===''?null:parseFloat(gRaw);
+ if(!name||!date){alert('Preencha o nome e a data.');return;}
+ if(!(gradeMax>0)){alert('A nota máxima precisa ser maior que zero.');return;}
+ if(!(weight>0)){alert('O peso precisa ser maior que zero.');return;}
+ if(grade!==null&&(isNaN(grade)||grade<0||grade>gradeMax)){
+  alert('A nota deve estar entre 0 e '+gradeMax+'.');return;}
+ const rec={name,subject:subj,date,note,tipo,grade,gradeMax,weight};
+ if(examEdit){
+  const alvo=state.exams.find(x=>x.id===examEdit);
+  if(alvo)Object.assign(alvo,rec);
+ } else state.exams.push(Object.assign({id:uid()},rec));
+ persist('exams');
+ endExamEdit();
+ renderAvaliacoes();
 }
 
 function deleteExam(id) {
+  if (!confirm('Excluir esta avaliação e a nota lançada?')) return;
   state.exams = state.exams.filter(x => x.id !== id);
+  if (examEdit === id) endExamEdit();
   persist('exams');
   renderAvaliacoes();
 }
@@ -2053,6 +2215,7 @@ function addError() {
 }
 
 function deleteError(id) {
+  if (!confirm('Excluir este registro de erro?')) return;
   state.errors = state.errors.filter(x => x.id !== id);
   persist('errors');
   renderErros();
@@ -2104,6 +2267,7 @@ function addTerm() {
 }
 
 function deleteTerm(id) {
+  if (!confirm('Excluir este termo do glossário?')) return;
   state.terms = state.terms.filter(x => x.id !== id);
   persist('terms');
   filterTerms();
@@ -2129,8 +2293,9 @@ function renderFaltas() {
   const el = document.getElementById('falta-disc-list');
   el.innerHTML = Object.entries(DISCIPLINES).map(([k, d]) => {
     const s = attStats(k);
-    const alertClass = s.pct >= 85 ? 'ok' : s.pct >= 75 ? 'warn' : 'danger';
-    const alertLabel = s.pct >= 85 ? '✓ OK' : s.pct >= 75 ? '⚠ Atenção' : '🚨 Risco';
+    const mf = Number(state.config?.minFreq || 75), okLim = mf + 10;
+    const alertClass = s.pct >= okLim ? 'ok' : s.pct >= mf ? 'warn' : 'danger';
+    const alertLabel = s.pct >= okLim ? '✓ OK' : s.pct >= mf ? '⚠ Atenção' : '🚨 Risco';
     return `<div class="falta-card" style="background:${d.bg}; border-color:${d.color}">
       <div class="falta-header">
         <div class="falta-name" style="color:${d.color}">${d.label}</div>
@@ -2153,7 +2318,8 @@ function renderFaltas() {
 }
 
 function addAtt(disc, present) {
-  state.attendance.push({ id: uid(), date: today(), subject: disc, present });
+  const inp = document.getElementById('falta-date');
+  state.attendance.push({ id: uid(), date: (inp && inp.value) || today(), subject: disc, present });
   persist('attendance');
   renderFaltas();
 }
@@ -2173,6 +2339,7 @@ function renderFaltaHistory() {
 }
 
 function deleteAtt(id) {
+  if (!confirm('Excluir este registro de falta?')) return;
   state.attendance = state.attendance.filter(x => x.id !== id);
   persist('attendance');
   renderFaltas();
@@ -2223,6 +2390,7 @@ function addJuris() {
 }
 
 function deleteJuris(id) {
+  if (!confirm('Excluir esta jurisprudência?')) return;
   state.juris = state.juris.filter(x => x.id !== id);
   persist('juris');
   filterJuris();
@@ -2260,6 +2428,7 @@ function addEsct() {
 }
 
 function deleteEsct(id) {
+  if (!confirm('Excluir esta anotação do escritório?')) return;
   state.escritorio = state.escritorio.filter(x => x.id !== id);
   persist('escritorio');
   renderEscritorio();
@@ -2423,6 +2592,7 @@ function toggleReading(id) {
 }
 
 function deleteReading(id) {
+  if (!confirm('Excluir esta leitura e o progresso dela?')) return;
   state.leituras = state.leituras.filter(x => x.id !== id);
   persist('leituras');
   renderLeituras();
@@ -2565,6 +2735,7 @@ function addFlashcard() {
 }
 
 function deleteFc(id) {
+  if (!confirm('Excluir este flashcard?')) return;
   state.flashcards = state.flashcards.filter(x => x.id !== id);
   persist('flashcards');
   renderFcAll();
@@ -2585,6 +2756,7 @@ function buildPeriodBar() {
 }
 
 function switchPeriod(p) {
+  if (typeof discEditId !== 'undefined' && discEditId) cancelDiscEdit();
   state.currentPeriod = p;
   persist('currentPeriod');
   if (!state.periods[p]) {
@@ -2616,90 +2788,18 @@ function populateSubjectSelects(...ids) {
 // ═══════════════════════════════════════════════════════════
 const PASSING_GRADE = 5.0;
 const EVAL_WEIGHTS  = { 'N1':3, 'N2':4, 'Checkpoint':1.5, 'Exame Final':5 };
+// Único cálculo de média ponderada do app (avaliações e desempenho por disciplina).
+function weightedAverage(itens){
+ const sumW=itens.reduce((a,e)=>a+(e.weight||1),0);
+ if(!sumW)return null;
+ return itens.reduce((a,e)=>a+parseFloat(e.grade||0)*(e.weight||1),0)/sumW;}
 
-function calcSubjectAvg(subjectId) {
-  const evals = state.grades.filter(g => g.periodId === state.currentPeriod && g.subjectId === subjectId && g.grade !== null && g.grade !== '');
-  if (!evals.length) return null;
-  // Weighted average if all have weights, else simple
-  const withWeight = evals.filter(e => e.weight);
-  if (withWeight.length === evals.length) {
-    const sumW = evals.reduce((a,e) => a + (e.weight||1), 0);
-    const sumWG= evals.reduce((a,e) => a + parseFloat(e.grade||0)*(e.weight||1), 0);
-    return sumWG / sumW;
-  }
-  return evals.reduce((a,e) => a + parseFloat(e.grade||0), 0) / evals.length;
-}
-
+// Semáforo de desempenho (escala 0–10) usado no painel das avaliações.
 function subjectStatus(avg) {
   if (avg === null)    return { cls:'risco',  label:'Sem notas' };
   if (avg >= 7.0)      return { cls:'ok',     label:'✓ Aprovada' };
   if (avg >= PASSING_GRADE) return { cls:'risco', label:'⚠ Em risco' };
   return { cls:'reprov', label:'✗ Abaixo da média' };
-}
-
-function renderBoletim() {
-  const subjects = currentSubjects();
-  const el = document.getElementById('boletim-list');
-  if (!subjects.length) { el.innerHTML = '<div class="empty-state">Nenhuma disciplina cadastrada para este período.</div>'; return; }
-
-  let aprovadas=0, risco=0, sumAvg=0, countAvg=0;
-  el.innerHTML = subjects.map(s => {
-    const avg = calcSubjectAvg(s.id);
-    const st  = subjectStatus(avg);
-    if (st.cls === 'ok') aprovadas++;
-    else if (st.cls === 'risco' || st.cls === 'reprov') risco++;
-    if (avg !== null) { sumAvg += avg; countAvg++; }
-
-    const evalsHtml = EVAL_TYPES.map(et => {
-      const existing = state.grades.find(g => g.periodId===state.currentPeriod && g.subjectId===s.id && g.evalType===et);
-      const val = existing ? existing.grade : '';
-      return `<div class="bol-eval-row">
-        <div class="bol-eval-name">${et}</div>
-        <input type="number" class="bol-grade-input" min="0" max="10" step="0.1"
-          value="${val}" placeholder="–"
-          onchange="saveGrade('${s.id}','${et}',this.value)"
-          id="grade-${s.id}-${et.replace(' ','-')}">
-        <span class="bol-grade-max">/10</span>
-        <span class="bol-weight">peso ${EVAL_WEIGHTS[et]||1}</span>
-      </div>`;
-    }).join('');
-
-    let precisaHtml = '';
-    if (avg !== null && avg < 7.0 && avg >= PASSING_GRADE) {
-      const notasAte = state.grades.filter(g => g.periodId===state.currentPeriod && g.subjectId===s.id && g.evalType !== 'Exame Final' && g.grade !== null && g.grade !== '').length;
-      const totalEvals = EVAL_TYPES.filter(e => e !== 'Exame Final').length;
-      if (notasAte >= totalEvals) {
-        const needed = (7.0 * (EVAL_WEIGHTS['Exame Final'] + Object.values(EVAL_WEIGHTS).slice(0,-1).reduce((a,b)=>a+b,0)) - avg * Object.values(EVAL_WEIGHTS).slice(0,-1).reduce((a,b)=>a+b,0)) / EVAL_WEIGHTS['Exame Final'];
-        precisaHtml = `<div class="bol-precisa">Precisa de ${Math.max(0,needed).toFixed(1)} no Exame Final para aprovação.</div>`;
-      }
-    }
-
-    return `<div class="bol-subject">
-      <div class="bol-subject-header" style="background:${s.color}">
-        <div class="bol-subject-name">${s.name}</div>
-        <div class="bol-media-badge">${avg !== null ? avg.toFixed(1) : '–'}</div>
-      </div>
-      <div class="bol-subject-body">
-        ${evalsHtml}
-        <span class="bol-status ${st.cls}">${st.label}</span>
-        ${precisaHtml}
-      </div>
-    </div>`;
-  }).join('');
-
-  document.getElementById('bol-aprovadas').textContent = aprovadas;
-  document.getElementById('bol-risco').textContent = risco;
-  document.getElementById('bol-media-geral').textContent = countAvg ? (sumAvg/countAvg).toFixed(1) : '–';
-}
-
-function saveGrade(subjectId, evalType, value) {
-  const idx = state.grades.findIndex(g => g.periodId===state.currentPeriod && g.subjectId===subjectId && g.evalType===evalType);
-  const grade = value === '' ? null : parseFloat(value);
-  const weight = EVAL_WEIGHTS[evalType] || 1;
-  if (idx >= 0) { state.grades[idx].grade = grade; }
-  else { state.grades.push({ id:uid(), periodId:state.currentPeriod, subjectId, evalType, grade, weight, date:today() }); }
-  persist('grades');
-  renderBoletim();
 }
 
 // ═══════════════════════════════════════════════════════════
@@ -2776,6 +2876,7 @@ function toggleEntrega(id) {
 }
 
 function deleteEntrega(id) {
+  if (!confirm('Excluir esta entrega?')) return;
   state.assignments = state.assignments.filter(x => x.id !== id);
   persist('assignments');
   renderEntregas();
@@ -2794,8 +2895,9 @@ function renderDisciplinas() {
       <div class="disc-edit-color" style="background:${s.color}"></div>
       <div style="flex:1">
         <div class="disc-edit-name" style="cursor:pointer" onclick="openDisc('${s.id}')">${s.name} ›</div>
-        <div class="disc-edit-day">${s.day} · ${s.time}${s.professor?' · '+s.professor:''}</div>
+        <div class="disc-edit-day">${s.day} · ${s.time}${s.professor?' · '+s.professor:''}${s.ch?' · '+s.ch+'h':''}${s.mode?' · '+s.mode:''}${s.sit?' · '+s.sit:''}</div>
       </div>
+      <button class="disc-edit-del" title="Editar" onclick="editDisc('${s.id}')">✎</button>
       <button class="disc-edit-del" onclick="deleteDisc('${s.id}')">🗑</button>
     </div>`).join('');
 }
@@ -2817,18 +2919,62 @@ function selectColor(color, rowId, valId) {
   buildColorPicker(rowId, valId);
 }
 
+// ── Edição de disciplina: o id nunca muda; sigla nova migra os vínculos ──
+let discEditId = null;
+const ABBREV_LISTS = ['attendance','errors','flashcards','revisions','leituras','juris','escritorio','exams'];
+function abbrevRecords(old){const out=[];ABBREV_LISTS.forEach(k=>(state[k]||[]).forEach(r=>{if(r.subject===old)out.push([k,r]);}));return out;}
+function updateDisc(campos){
+ const s=(state.periods[state.currentPeriod].subjects||[]).find(x=>x.id===discEditId);
+ if(!s){cancelDiscEdit();return;}
+ const old=s.abbrev,mudou=old!==campos.abbrev,recs=mudou?abbrevRecords(old):[];
+ if(recs.length&&!confirm('A sigla mudou de "'+old+'" para "'+campos.abbrev+'".\n\n'+recs.length+' registro(s) ligados a ela (faltas, provas, erros, cards, revisões, leituras, jurisprudências, escritório) serão atualizados para manter o vínculo.\n\nContinuar?'))return;
+ Object.assign(s,campos);
+ recs.forEach(([k,r])=>{r.subject=campos.abbrev;});
+ persist('periods');
+ [...new Set(recs.map(([k])=>k))].forEach(persist);
+ cancelDiscEdit();renderDisciplinas();syncDisciplines();
+ if(recs.length)alert('Disciplina atualizada ✅\n'+recs.length+' vínculo(s) ajustados para a nova sigla.');
+}
+function editDisc(id){
+ const s=currentSubjects().find(x=>x.id===id);if(!s)return;
+ discEditId=id;
+ const set=(i,v)=>{const e=document.getElementById(i);if(e)e.value=v;};
+ set('de-name',s.name);set('de-abbrev',s.abbrev);set('de-day',s.day||'');set('de-time',s.time||'');
+ set('de-prof',s.professor||'');set('de-ch',s.ch||'');set('de-mode',s.mode||'Presencial');set('de-sit',s.sit||'');
+ document.getElementById('de-color-val').value=s.color||SWATCHES[0];
+ buildColorPicker('de-color-row','de-color-val');
+ document.getElementById('de-form-title').textContent='✏️ Editando: '+s.name;
+ document.getElementById('de-save').textContent='Salvar alterações';
+ document.getElementById('de-cancel').style.display='block';
+ document.getElementById('de-name').scrollIntoView({block:'center'});
+}
+function cancelDiscEdit(){
+ if(discEditId===null)return;
+ discEditId=null;
+ ['de-name','de-abbrev','de-day','de-time','de-prof','de-ch'].forEach(i=>{const e=document.getElementById(i);if(e)e.value='';});
+ const m=document.getElementById('de-mode');if(m)m.selectedIndex=0;
+ const s2=document.getElementById('de-sit');if(s2)s2.value='';
+ document.getElementById('de-form-title').textContent='+ Nova Disciplina';
+ document.getElementById('de-save').textContent='Adicionar Disciplina';
+ document.getElementById('de-cancel').style.display='none';
+}
+
 function addDiscEdit() {
   const name   = document.getElementById('de-name').value.trim();
   const abbrev = document.getElementById('de-abbrev').value.trim();
   const day    = document.getElementById('de-day').value.trim();
   const time   = document.getElementById('de-time').value.trim();
   const prof   = document.getElementById('de-prof').value.trim();
+  const ch     = parseFloat(document.getElementById('de-ch').value)||0;
   const color  = document.getElementById('de-color-val').value;
   if (!name || !abbrev) { alert('Preencha o nome e a sigla.'); return; }
+  const mode   = document.getElementById('de-mode')?.value || 'Presencial';
+  const sit    = document.getElementById('de-sit')?.value || '';
+  if (discEditId) { updateDisc({ name, abbrev, color, day, time, professor:prof, ch, mode, sit }); return; }
   const id = abbrev.toLowerCase().replace(/[^a-z0-9]/g,'') + '_' + uid();
-  state.periods[state.currentPeriod].subjects.push({ id, name, abbrev, color, day, time, professor:prof });
+  state.periods[state.currentPeriod].subjects.push({ id, name, abbrev, color, day, time, professor:prof, ch, mode, sit });
   persist('periods');
-  ['de-name','de-abbrev','de-day','de-time','de-prof'].forEach(eid => { const el=document.getElementById(eid); if(el) el.value=''; });
+  ['de-name','de-abbrev','de-day','de-time','de-prof','de-ch'].forEach(eid => { const el=document.getElementById(eid); if(el) el.value=''; });
   renderDisciplinas();
 }
 
@@ -2837,6 +2983,7 @@ function deleteDisc(id) {
   state.periods[state.currentPeriod].subjects = state.periods[state.currentPeriod].subjects.filter(s => s.id !== id);
   persist('periods');
   renderDisciplinas();
+  renderFaltas();
 }
 
 // ═══════════════════════════════════════════════════════════
@@ -2862,12 +3009,12 @@ function syncDisciplines(){
 }
 
 // ── Notas em pontos ──
-const sk=(sid,cid)=>`${state.currentPeriod}|${sid}|${cid}`;
-function subjTotals(sid){
+const sk=(sid,cid,per)=>`${per||state.currentPeriod}|${sid}|${cid}`;
+function subjTotals(sid,per){
  let got=0,done=0,pending=0,max=0;
- state.config.comps.forEach(c=>{max+=c.max;const v=state.scores[sk(sid,c.id)];
+ state.config.comps.forEach(c=>{max+=c.max;const v=state.scores[sk(sid,c.id,per)];
   if(v===undefined||v===null)pending+=c.max;else{got+=v;done+=c.max;}});
- return {got,done,pending,max,ex:state.scores[sk(sid,'exame')]};
+ return {got,done,pending,max,ex:state.scores[sk(sid,'exame',per)]};
 }
 function subjStatus(t){
  const C=state.config,P=C.passScore;
@@ -2880,9 +3027,26 @@ function subjStatus(t){
  const f=C.examMode==='avg'?(t.got+t.ex)/2:t.ex;
  return f>=C.examPass?{cls:'ok',label:'✓ Aprovada no Exame ('+f.toFixed(1)+')'}:{cls:'reprov',label:'✗ Reprovada no Exame ('+f.toFixed(1)+')'};
 }
+// ── Evolução por período: agrega o que já está lançado; não altera cálculo algum ──
+function renderEvolucao(){
+ const el=$('bol-evolucao');if(!el)return;
+ const C=state.config;
+ const rows=Object.keys(state.periods).map(Number).sort((a,b)=>a-b).map(p=>{
+  const subs=state.periods[p].subjects||[];
+  const vals=subs.map(s=>subjTotals(s.id,p)).filter(x=>x.done>0).map(x=>x.got);
+  if(!vals.length)return null;
+  return {p,nome:state.periods[p].name||('Período '+p),qtd:subs.length,lanc:vals.length,
+   media:vals.reduce((a,b)=>a+b,0)/vals.length,aprov:vals.filter(v=>v>=C.passScore).length};
+ }).filter(Boolean);
+ if(!rows.length){el.innerHTML='<div class="empty-state">Lance notas para acompanhar a evolução.</div>';return;}
+ el.innerHTML=rows.map(r=>`<div class="bol-eval-row"><div class="bol-eval-name">${r.nome}${r.p===state.currentPeriod?' <b>· atual</b>':''}</div><span class="bol-grade-max">${r.media.toFixed(1)}/${C.maxScore}</span></div>
+  <div class="bol-precisa" style="margin:-.25rem 0 .5rem">${r.lanc} de ${r.qtd} disciplina(s) com nota · ${r.aprov} com ${C.passScore}+ pontos</div>`).join('');
+}
+
 function renderBoletim(){
+ renderEvolucao();
  const subs=currentSubjects(),el=$('boletim-list'),C=state.config;
- if(!subs.length){el.innerHTML='<div class="empty-state">Nenhuma disciplina neste período. Cadastre em “Discip.”.</div>';return;}
+ if(!subs.length){el.innerHTML='<div class="empty-state">Nenhuma disciplina neste período. Cadastre em “Discip.”.</div>';renderSim();return;}
  const units=[...new Set(C.comps.map(c=>c.unit))];let ap=0,rk=0,sum=0,n=0;
  el.innerHTML=subs.map(s=>{
   const t=subjTotals(s.id),st=subjStatus(t);
@@ -2892,7 +3056,36 @@ function renderBoletim(){
   const ex=(t.pending===0&&t.got<C.passScore)||t.ex!=null?`<div class="section-label">Exame Final</div><div class="bol-eval-row"><div class="bol-eval-name">Exame</div><input type="number" class="bol-grade-input" min="0" max="${C.examMax}" step="0.5" value="${t.ex??''}" placeholder="–" onchange="setScore('${s.id}','exame',this.value,${C.examMax})"><span class="bol-grade-max">/${C.examMax}</span></div>`:'';
   return `<div class="bol-subject"><div class="bol-subject-header" style="background:${s.color}"><div class="bol-subject-name">${s.name}</div><div class="bol-media-badge">${t.got}/${t.max}</div></div><div class="bol-subject-body">${rows}${ex}<span class="bol-status ${st.cls}">${st.label}</span>${st.hint?`<div class="bol-precisa">${st.hint}</div>`:''}</div></div>`;}).join('');
  $('bol-aprovadas').textContent=ap;$('bol-risco').textContent=rk;$('bol-media-geral').textContent=n?(sum/n).toFixed(1):'–';
+ renderSim();
 }
+// ── Simulador de notas: só em memória, nunca grava ──
+const simVals={};
+function renderSim(){
+ const sel=$('sim-disc');if(!sel)return;
+ const subs=currentSubjects(),cur=sel.value;
+ sel.innerHTML=subs.length?subs.map(s=>`<option value="${s.id}">${s.name}</option>`).join(''):'<option value="">Sem disciplinas</option>';
+ if(subs.some(s=>s.id===cur))sel.value=cur;
+ const sid=sel.value,box=$('sim-fields'),res=$('sim-result');
+ if(!subs.length||!sid){box.innerHTML='';res.innerHTML='<div class="empty-state">Cadastre uma disciplina para simular.</div>';return;}
+ const C=state.config;
+ box.innerHTML=C.comps.map(c=>{const real=state.scores[sk(sid,c.id)];
+  return `<div class="bol-eval-row"><div class="bol-eval-name">${c.name}${real!=null?` <span class="text-muted">(real: ${real})</span>`:''}</div><input type="number" class="bol-grade-input" min="0" max="${c.max}" step="0.5" placeholder="–" value="${simVals[sid+'|'+c.id]??''}" onchange="simSet('${sid}','${c.id}',this.value,${c.max})"><span class="bol-grade-max">/${c.max}</span></div>`;}).join('');
+ simRender(sid);}
+function simSet(sid,cid,v,max){const k=sid+'|'+cid;
+ if(v==='')delete simVals[k];else simVals[k]=Math.min(max,Math.max(0,parseFloat(v)||0));
+ renderSim();}
+function simClear(){Object.keys(simVals).forEach(k=>delete simVals[k]);renderSim();}
+function simRender(sid){
+ const C=state.config,t=subjTotals(sid);let sim=0,simDone=0,faltando=[];
+ C.comps.forEach(c=>{const real=state.scores[sk(sid,c.id)],v=simVals[sid+'|'+c.id];
+  if(real==null&&v!=null){sim+=v;simDone+=c.max;}else if(real==null)faltando.push(c.name);});
+ const proj=t.got+sim,st=subjStatus({got:proj,done:t.done+simDone,pending:t.pending-simDone,max:t.max,ex:null});
+ const falta=C.passScore-proj;
+ $('sim-result').innerHTML=`<div class="bol-summary"><div class="bol-sum-box"><div class="bol-sum-num">${proj.toFixed(1)}</div><div class="bol-sum-label">Total projetado</div></div><div class="bol-sum-box"><div class="bol-sum-num">${t.got.toFixed(1)}</div><div class="bol-sum-label">Real lançado</div></div><div class="bol-sum-box"><div class="bol-sum-num">${sim.toFixed(1)}</div><div class="bol-sum-label">Simulado</div></div></div>
+ <span class="bol-status ${st.cls}">SIMULADO · ${st.label}</span>
+ <div class="bol-precisa">${falta>0?`Faltam ${falta.toFixed(1)} pontos para atingir ${C.passScore}.`:`Meta de ${C.passScore} pontos alcançada com este simulado.`}${faltando.length?' Sem nota (real ou simulada): '+faltando.join(', ')+'.':''}</div>
+ <button class="btn-primary" style="margin-top:.5rem;background:var(--muted)" onclick="simClear()">Limpar simulação</button>`;}
+
 function setScore(sid,cid,v,max){const k=sk(sid,cid);
  if(v==='')delete state.scores[k];else state.scores[k]=Math.min(max,Math.max(0,parseFloat(v)));
  persist('scores');renderBoletim();}
@@ -2905,6 +3098,7 @@ function renderConfig(){
  const tot=C.comps.reduce((a,c)=>a+c.max,0);
  $('cf-total').textContent=tot===C.maxScore?`✓ Soma dos componentes: ${tot} pontos`:`⚠ A soma dos componentes (${tot}) difere da pontuação total (${C.maxScore}).`;
  const lb=localStorage.getItem('pj_lastBackup');$('cf-last').textContent=lb?'Último backup: '+fmt(lb):'Nenhum backup exportado ainda.';
+ renderSnaps();
 }
 function saveConfig(){const C=state.config,g=i=>$('cf-'+i).value.trim(),n=(i,d)=>{const v=parseFloat(g(i));return isNaN(v)?d:v;};
  C.name=g('name');C.inst=g('inst');C.course=g('course');C.campus=g('campus');C.maxScore=n('max',100);C.passScore=n('pass',70);C.minFreq=n('freq',75);C.examMax=n('exmax',100);C.examPass=n('expass',70);C.examMode=$('cf-exmode').value;
@@ -2917,18 +3111,136 @@ function delComp(id){if(!confirm('Remover este componente? As notas já lançada
  state.config.comps=state.config.comps.filter(c=>c.id!==id);persist('config');renderConfig();}
 
 // ── Backup ──
-function backupJson(){const d={app:'planner-juridico',v:1,date:new Date().toISOString(),data:{}};
- for(let i=0;i<localStorage.length;i++){const k=localStorage.key(i);if(k.startsWith('pj_'))d.data[k]=localStorage.getItem(k);}
- return JSON.stringify(d);}
-function exportBackup(){const a=document.createElement('a');
- a.href=URL.createObjectURL(new Blob([backupJson()],{type:'application/json'}));a.download='backup-planner-'+today()+'.json';
- document.body.appendChild(a);a.click();a.remove();localStorage.setItem('pj_lastBackup',today());renderConfig();}
+// Exportação: todo o localStorage "pj_*". Importação: MESCLA no que já existe
+// (nada é apagado nem substituído; registros iguais não são duplicados).
+const BACKUP_LABELS={pj_tasks:'tarefas',pj_revisions:'revisões',pj_exams:'provas',pj_grades:'notas',pj_notes:'notas livres',pj_goals:'metas',pj_errors:'erros',pj_terms:'termos',pj_attendance:'faltas',pj_juris:'jurisprudências',pj_escritorio:'escritório',pj_leituras:'leituras',pj_flashcards:'flashcards',pj_assignments:'entregas',pj_events:'eventos',pj_compl:'atividades compl.',pj_conteudos:'conteúdos',pj_periods:'períodos',pj_hist:'histórico',pj_scores:'notas por componente'};
+
+function backupData(){const d={app:'planner-juridico',v:1,date:new Date().toISOString(),data:{}};
+ for(let i=0;i<localStorage.length;i++){const k=localStorage.key(i);if(k.startsWith('pj_')&&k!=='pj_backups'&&k!=='pj_lastBackup')d.data[k]=localStorage.getItem(k);}
+ return d;}
+function backupJson(){return JSON.stringify(backupData());}
+function recordCount(v){if(Array.isArray(v))return v.length;if(v&&typeof v==='object')return Object.keys(v).length;return v==null?0:1;}
+function backupLines(d){
+ return Object.keys(d.data).filter(k=>k!=='pj_lastBackup').map(k=>{
+  let v;try{v=JSON.parse(d.data[k]);}catch{return null;}
+  if(!Array.isArray(v)&&!isPlainObj(v))return null; // ajustes internos não são registros
+  const n=recordCount(v);return n?(n+' '+(BACKUP_LABELS[k]||k.replace('pj_',''))):null;
+ }).filter(Boolean);}
+
+function exportBackup(){const d=backupData();const a=document.createElement('a');
+ a.href=URL.createObjectURL(new Blob([JSON.stringify(d)],{type:'application/json'}));a.download='backup-planner-'+today()+'.json';
+ document.body.appendChild(a);a.click();a.remove();localStorage.setItem('pj_lastBackup',today());renderConfig();
+ const itens=backupLines(d);
+ alert('Backup exportado ✅\n\n'+(itens.length?itens.join(' · '):'Nenhum registro cadastrado ainda')+'\n\nGuarde o arquivo: ele contém todos os dados deste aparelho.');
+}
 function copyBackup(){navigator.clipboard.writeText(backupJson()).then(()=>{localStorage.setItem('pj_lastBackup',today());renderConfig();alert('Backup copiado. Cole em um arquivo de texto e guarde.');},()=>alert('Não foi possível copiar. Use “Exportar backup”.'));}
-function importBackup(inp){const f=inp.files[0];if(!f)return;const r=new FileReader();
- r.onload=()=>{let d;try{d=JSON.parse(r.result);if(d.app!=='planner-juridico'||!d.data)throw 0;}catch(e){alert('Arquivo de backup inválido.');return;}
-  if(!confirm('Isto substituirá os dados atuais deste aparelho pelos do backup. Continuar?'))return;
-  Object.entries(d.data).forEach(([k,v])=>localStorage.setItem(k,v));location.reload();};
+
+// ── Mesclagem de backup (não destrutiva) ──
+function isPlainObj(v){return v&&typeof v==='object'&&!Array.isArray(v);}
+function canonical(v){
+ if(Array.isArray(v))return '['+v.map(canonical).join(',')+']';
+ if(isPlainObj(v))return '{'+Object.keys(v).sort().map(k=>JSON.stringify(k)+':'+canonical(v[k])).join(',')+'}';
+ const s=JSON.stringify(v);return s===undefined?'null':s;}
+// Identidade de um registro: id estável quando existe; senão, o conteúdo completo.
+function recordKey(keyName,v){
+ if(isPlainObj(v)){
+  if(keyName==='pj_grades'&&v.subjectId&&v.evalType)return 'nota:'+v.periodId+'|'+v.subjectId+'|'+v.evalType;
+  if(v.id!==undefined&&v.id!==null)return 'id:'+v.id;}
+ return 'json:'+canonical(v);}
+function mergeNode(local,incoming,keyName,st){
+ if(local===undefined){st.added++;return incoming;}
+ if(Array.isArray(local)&&Array.isArray(incoming)){
+  const out=local.slice(),seen=new Set(local.map(x=>recordKey(keyName,x)));
+  incoming.forEach(x=>{const k=recordKey(keyName,x);
+   if(seen.has(k)){st.dupes++;return;}seen.add(k);out.push(x);st.added++;});
+  return out;}
+ if(isPlainObj(local)&&isPlainObj(incoming)){
+  const out=Object.assign({},local);
+  Object.keys(incoming).forEach(k=>{
+   if(Object.prototype.hasOwnProperty.call(local,k))out[k]=mergeNode(local[k],incoming[k],keyName,st);
+   else{out[k]=incoming[k];st.added++;}});
+  return out;}
+ st.dupes++;return local;} // valor já existente é mantido
+
+function parseBackupFile(raw){
+ let d;try{d=JSON.parse(raw);}catch{throw new Error('O arquivo não é um JSON válido.');}
+ if(!d||d.app!=='planner-juridico'||!isPlainObj(d.data))throw new Error('Este arquivo não parece ser um backup do Planner.');
+ const data={};
+ Object.keys(d.data).forEach(k=>{
+  if(!k.startsWith('pj_')||k==='pj_lastBackup'||k==='pj_backups')return;
+  const v=d.data[k];
+  if(typeof v==='string'){try{data[k]=JSON.parse(v);}catch{throw new Error('O backup tem um registro corrompido ('+k+').');}}
+  else data[k]=v;});
+ if(!Object.keys(data).length)throw new Error('O backup não contém nenhum dado do planner.');
+ return {date:d.date,data};}
+
+function planMerge(backup){
+ const st={added:0,dupes:0},out={};
+ Object.keys(backup.data).forEach(k=>{
+  const raw=localStorage.getItem(k);let local;
+  if(raw!==null){try{local=JSON.parse(raw);}catch{local=undefined;}}
+  const antes=st.added;
+  const merged=mergeNode(local,backup.data[k],k,st);
+  if(st.added>antes||raw===null)out[k]=merged;});
+ return {out,st};}
+
+function importBackup(inp){
+ const f=inp.files&&inp.files[0];if(!f)return;
+ const r=new FileReader();
+ r.onload=()=>{
+  inp.value='';
+  let backup;
+  try{backup=parseBackupFile(r.result);}
+  catch(e){alert('Arquivo de backup inválido.\n\n'+(e.message||''));return;}
+  const {out,st}=planMerge(backup);
+  const quando=backup.date?fmt(String(backup.date).slice(0,10)):'data desconhecida';
+  if(!st.added){
+   alert('Nada para importar: os '+st.dupes+' registros do arquivo já existem neste aparelho.\n\nSeus dados não foram alterados.');
+   return;}
+  if(!confirm('Mesclar backup de '+quando+'?\n\n'+
+   '• '+st.added+' registro(s) novo(s) serão adicionados\n'+
+   '• '+st.dupes+' registro(s) iguais do arquivo serão ignorados\n\n'+
+   'Seus dados atuais NÃO serão apagados nem substituídos. Continuar?'))return;
+  snapshotNow('antes de importar');
+  Object.keys(out).forEach(k=>{try{localStorage.setItem(k,JSON.stringify(out[k]));}catch{}});
+  alert('Backup mesclado ✅\n'+st.added+' registro(s) adicionado(s) · '+st.dupes+' já existiam.\n\nA página será recarregada.');
+  location.reload();};
+ r.onerror=()=>alert('Não foi possível ler o arquivo.');
  r.readAsText(f);}
+
+// ── Pontos de recuperação (cópias locais no próprio navegador) ──
+// Guardam o conteúdo de todas as chaves pj_* (exceto os próprios pontos).
+const BK_KEY='pj_backups',BK_MAX=5;
+function bkList(){const l=load(BK_KEY,[]);return Array.isArray(l)?l:[];}
+function bkStore(list){
+ for(let n=list.length;n>=1;n--){try{localStorage.setItem(BK_KEY,JSON.stringify(list.slice(0,n)));return true;}catch{}}
+ return false;}
+function snapshotNow(label){
+ const data={};
+ for(let i=0;i<localStorage.length;i++){const k=localStorage.key(i);
+  if(k.startsWith('pj_')&&k!==BK_KEY&&k!=='pj_lastBackup')data[k]=localStorage.getItem(k);}
+ const list=bkList();list.unshift({id:uid(),ts:new Date().toISOString(),label:label||'manual',data});
+ return bkStore(list.slice(0,BK_MAX));}
+function snapWhen(iso){const d=new Date(iso);return d.toLocaleDateString('pt-BR')+' às '+d.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});}
+function mkSnapshot(){
+ if(!snapshotNow('manual')){alert('Não foi possível criar o ponto: o armazenamento do navegador está cheio. Exporte um backup e libere espaço.');return;}
+ renderConfig();alert('Ponto de recuperação criado ✅\n\nEle fica neste navegador. Guarde também um backup exportado: esse sai do aparelho.');}
+function restoreSnapshot(id){
+ const b=bkList().find(x=>x.id===id);if(!b)return;
+ const ks=Object.keys(b.data);
+ if(!confirm('Restaurar o ponto de '+snapWhen(b.ts)+'?\n\n'+ks.length+' grupos de dados serão reescritos com o conteúdo desse ponto. O estado atual é guardado antes, em um novo ponto de recuperação.'))return;
+ snapshotNow('antes de restaurar');
+ let fail=0;ks.forEach(k=>{try{localStorage.setItem(k,b.data[k]);}catch{fail++;}});
+ if(fail){alert('Restauração parcial: '+fail+' grupo(s) não puderam ser gravados (armazenamento cheio).');return;}
+ alert('Dados restaurados ✅\n\nA página será recarregada.');location.reload();}
+function delSnapshot(id){
+ if(!confirm('Excluir este ponto de recuperação? Os dados atuais não mudam.'))return;
+ bkStore(bkList().filter(x=>x.id!==id));renderConfig();}
+function renderSnaps(){
+ const el=$('cf-snaps');if(!el)return;
+ const list=bkList();
+ el.innerHTML=list.length?list.map(b=>`<div class="disc-edit-item" style="border-color:var(--primary)"><div style="flex:1;font-size:.78rem"><b>${snapWhen(b.ts)}</b><br><span class="text-muted">${b.label||'manual'} · ${Object.keys(b.data).length} grupos · ~${Math.round(JSON.stringify(b).length/1024)} KB</span></div><button class="disc-edit-del" title="Restaurar" onclick="restoreSnapshot('${b.id}')">↺</button><button class="disc-edit-del" title="Excluir" onclick="delSnapshot('${b.id}')">🗑</button></div>`).join(''):'<div class="empty-state">Nenhum ponto de recuperação ainda.</div>';
+}
 
 // ── Página da disciplina ──
 function openDisc(id){discSel=id;showPage('disc',null);}
@@ -2942,7 +3254,7 @@ function renderDiscDetail(){
   ct=state.conteudos[s.id]||[],pc=ct.length?Math.round(ct.filter(c=>c.s===2).length/ct.length*100):0,
   box=(n,l)=>`<div class="bol-sum-box"><div class="bol-sum-num">${n}</div><div class="bol-sum-label">${l}</div></div>`;
  el.innerHTML=`<div class="card" style="border-top:5px solid ${s.color}"><div class="card-title" style="color:${s.color}">${s.name}</div>
- <div class="text-muted">${s.day||''} ${s.time||''}${s.professor?' · '+s.professor:''}</div>
+ <div class="text-muted">${s.day||''} ${s.time||''}${s.professor?' · '+s.professor:''}${s.ch?' · '+s.ch+'h':''}</div>
  <div class="bol-summary" style="margin-top:.75rem">${box(t.got+'/'+t.max,'Pontos')}${box(at.pct+'%','Frequência')}${box((min/60).toFixed(1)+'h','Estudadas')}</div>
  <span class="bol-status ${st.cls}">${st.label}</span>${st.hint?`<div class="bol-precisa">${st.hint}</div>`:''}
  <div class="bol-summary" style="margin-top:.75rem">${box(er,'Erros')}${box(rv,'Revisões')}${box(fc+' / '+en,'Cards / Entregas')}</div></div>
@@ -2953,7 +3265,7 @@ function renderDiscDetail(){
 }
 function addCont(){const t=$('ct-in').value.trim();if(!t)return;(state.conteudos[discSel]=state.conteudos[discSel]||[]).push({id:uid(),t,s:0});persist('conteudos');renderDiscDetail();}
 function cycleCont(id){const c=(state.conteudos[discSel]||[]).find(x=>x.id===id);if(c){c.s=(c.s+1)%3;persist('conteudos');renderDiscDetail();}}
-function delCont(id){state.conteudos[discSel]=(state.conteudos[discSel]||[]).filter(x=>x.id!==id);persist('conteudos');renderDiscDetail();}
+function delCont(id){if(!confirm('Excluir este conteúdo e as observações dele?'))return;state.conteudos[discSel]=(state.conteudos[discSel]||[]).filter(x=>x.id!==id);persist('conteudos');renderDiscDetail();}
 
 
 // ═══════════ CURRÍCULO, HISTÓRICO E COMPLEMENTARES ═══════════
@@ -3045,7 +3357,7 @@ function renderGrad(){
 function addCompl(){const name=$('cm-name').value.trim(),h=parseFloat($('cm-h').value),d=$('cm-date').value||today();
  if(!name||isNaN(h)||h<=0){alert('Informe a atividade e as horas.');return;}
  state.compl.push({id:uid(),date:d,name,h});persist('compl');$('cm-name').value='';$('cm-h').value='';renderGrad();}
-function delCompl(id){state.compl=state.compl.filter(c=>c.id!==id);persist('compl');renderGrad();}
+function delCompl(id){if(!confirm('Excluir esta atividade complementar?'))return;state.compl=state.compl.filter(c=>c.id!==id);persist('compl');renderGrad();}
 
 
 // ═══════════ CALENDÁRIO MENSAL (começa vazio; só exibe eventos cadastrados aqui) ═══════════
@@ -3057,6 +3369,21 @@ const esc=t=>String(t==null?'':t).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;',
 const localToday=()=>{const n=new Date();return ymd(n.getFullYear(),n.getMonth(),n.getDate());};
 let calY=new Date().getFullYear(),calM=new Date().getMonth(),calSel=localToday(),calEdit=null;
 
+// Itens de outros módulos no calendário — leitura apenas, sem duplicar cadastro
+function calExtra(dateStr){
+ const out=[];
+ state.exams.filter(e=>e.date===dateStr).forEach(e=>out.push({kind:'Prova',color:EV_TYPES.Prova,title:e.name,subject:e.subject,note:e.tipo||''}));
+ state.assignments.filter(a=>a.dueDate===dateStr).forEach(a=>{
+  const s=(state.periods[a.periodId]?.subjects||[]).find(x=>x.id===a.subjectId);
+  out.push({kind:'Entrega',color:EV_TYPES.Entrega,title:a.title,subject:s?s.abbrev:'',note:a.completed?'concluída':'a entregar'});});
+ state.revisions.filter(r=>!r.consolidated&&r.nextReview===dateStr).forEach(r=>out.push({kind:'Revisão',color:EV_TYPES.Revisão,title:r.topic,subject:r.subject,note:'revisão programada'}));
+ return out;
+}
+function calExtraRows(dateStr){
+ const xt=calExtra(dateStr); if(!xt.length)return;
+ const el=$('cal-day-list'); const em=el.querySelector('.empty-state'); if(em)em.remove();
+ el.insertAdjacentHTML('beforeend', xt.map(x=>`<div class="rev-item" style="border-color:${x.color}"><div class="rev-item-top"><div class="rev-topic">${esc(x.title)}</div><span class="rev-stage-badge" style="background:${x.color}">${x.kind}</span></div><div class="rev-next">${[x.subject||'',x.note||'',(x.kind==='Prova'?'ver em Provas':x.kind==='Entrega'?'ver em Entregas':'ver em Revisões')].filter(Boolean).join(' · ')}</div></div>`).join(''));
+}
 function renderCalendario(){
  const ty=$('ev-type');
  if(!ty.options.length)ty.innerHTML=Object.keys(EV_TYPES).map(k=>`<option value="${k}">${k}</option>`).join('');
@@ -3072,8 +3399,9 @@ function renderCalendario(){
   let d=i-first+1,y=calY,m=calM,out=false;
   if(d<1){d+=prev;m--;out=true;if(m<0){m=11;y--;}}
   else if(d>dim){d-=dim;m++;out=true;if(m>11){m=0;y++;}}
-  const ds=ymd(y,m,d),evs=state.events.filter(e=>e.date===ds);
-  h+=`<div class="cal-cell${out?' out':''}${ds===tdy?' today':''}${ds===calSel?' sel':''}" onclick="calPick('${ds}')">${d}<div class="cal-dots">${evs.slice(0,3).map(e=>`<span class="cal-dot" style="background:${EV_TYPES[e.type]||'#666'}"></span>`).join('')}${evs.length>3?'<span style="font-size:.5rem">+</span>':''}</div></div>`;
+  const ds=ymd(y,m,d),evs=state.events.filter(e=>e.date===ds),xt=calExtra(ds);
+  const dots=[...evs.map(e=>EV_TYPES[e.type]||'#666'),...xt.map(x=>x.color)];
+  h+=`<div class="cal-cell${out?' out':''}${ds===tdy?' today':''}${ds===calSel?' sel':''}" onclick="calPick('${ds}')">${d}<div class="cal-dots">${dots.slice(0,3).map(c=>`<span class="cal-dot" style="background:${c}"></span>`).join('')}${dots.length>3?'<span style="font-size:.5rem">+</span>':''}</div></div>`;
  }
  $('cal-grid').innerHTML=h;
  renderCalDay();
@@ -3084,6 +3412,7 @@ function renderCalDay(){
  const evs=state.events.filter(e=>e.date===calSel).sort((a,b)=>(a.time||'99').localeCompare(b.time||'99'));
  $('cal-day-list').innerHTML=evs.map(e=>{const c=EV_TYPES[e.type]||'#666';
   return `<div class="rev-item" style="border-color:${c}"><div class="rev-item-top"><div class="rev-topic">${esc(e.title)}</div><span class="rev-stage-badge" style="background:${c}">${esc(e.type)}</span></div><div class="rev-next">${e.time?'⏰ '+esc(e.time):''}${e.time&&e.subject?' · ':''}${esc(e.subject)}${e.note?'<br>📝 '+esc(e.note):''}</div><div class="rev-actions"><button class="rev-btn advance" onclick="editEvent('${e.id}')">Editar</button><button class="rev-btn del" onclick="deleteEvent('${e.id}')">Excluir</button></div></div>`;}).join('')||'<div class="empty-state">Nenhum evento neste dia.</div>';
+ calExtraRows(calSel);
  if(!calEdit)$('ev-date').value=calSel;
 }
 function calNav(dm){calM+=dm;if(calM<0){calM=11;calY--;}if(calM>11){calM=0;calY++;}renderCalendario();}
