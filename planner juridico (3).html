@@ -1077,6 +1077,25 @@ details{margin-bottom:.6rem}summary{cursor:pointer;font-weight:700;font-size:.85
   <div id="cf-snaps"></div>
   <button class="btn-primary" style="margin-top:.5rem" onclick="mkSnapshot()">Criar ponto de recuperação</button>
  </div>
+ <div class="card"><div class="card-title">☁️ Sincronização entre aparelhos</div>
+  <p class="text-muted" style="font-size:.78rem;margin-bottom:.5rem">Opcional. Seus dados continuam salvos neste navegador e o app funciona sem internet. Com a sincronização ativa, celular e computador passam a compartilhar os mesmos dados (Supabase — banco gratuito até 500 MB).</p>
+  <div class="section-label">Projeto Supabase</div>
+  <input class="form-input" id="sync-url" placeholder="https://xxxxxxxx.supabase.co" style="width:100%;margin-bottom:.5rem">
+  <input class="form-input" id="sync-key" placeholder="Chave pública (anon key)" style="width:100%;margin-bottom:.5rem">
+  <div id="sync-auth-row">
+   <input class="form-input" id="sync-email" type="email" placeholder="E-mail da conta" style="width:100%;margin-bottom:.5rem">
+   <input class="form-input" id="sync-pass" type="password" placeholder="Senha" style="width:100%;margin-bottom:.5rem">
+   <button class="btn-primary" onclick="syncLoginUI(false)">Entrar</button>
+   <button class="btn-primary" style="margin-top:.5rem;background:var(--muted)" onclick="syncLoginUI(true)">Criar conta</button>
+  </div>
+  <div id="sync-on-row" style="display:none">
+   <div class="text-muted" style="font-size:.78rem;margin-bottom:.5rem">Conectado como <b id="sync-user"></b></div>
+   <label class="cf-field" style="display:flex;align-items:center;gap:.5rem">Sincronização ativa<input type="checkbox" id="sync-enabled" onchange="syncToggleUI()"></label>
+   <button class="btn-primary" onclick="syncManualUI()">Sincronizar agora</button>
+   <button class="btn-primary" style="margin-top:.5rem;background:var(--muted)" onclick="syncLogoutUI()">Desconectar</button>
+  </div>
+  <div id="sync-status" class="text-muted" style="margin-top:.6rem;font-size:.78rem"></div>
+ </div>
 </div>
 <div id="page-disc" class="page"><div id="disc-detail"></div></div>
 
@@ -1539,9 +1558,9 @@ function persist(key) { save('pj_'+key, state[key]); }
 // ═══════════════════════════════════════════════════════════
 function uid() { return Date.now().toString(36) + Math.random().toString(36).slice(2,6); }
 
+function localISO(d){const p=n=>String(n).padStart(2,'0');return d.getFullYear()+'-'+p(d.getMonth()+1)+'-'+p(d.getDate());}
 function today() {
-  const d = new Date();
-  return d.toISOString().split('T')[0];
+  return localISO(new Date());
 }
 
 function fmt(dateStr) {
@@ -1852,7 +1871,7 @@ const STAGES = [
 function nextReviewDate(stage) {
   const d = new Date();
   d.setDate(d.getDate() + (STAGES[stage]?.days || 1));
-  return d.toISOString().split('T')[0];
+  return localISO(d);
 }
 
 function renderRevisoes() {
@@ -2624,7 +2643,7 @@ let fcActiveTab  = 'study';
 function fcNextReview(stage) {
   const d = new Date();
   d.setDate(d.getDate() + (FC_STAGES[stage] || 1));
-  return d.toISOString().split('T')[0];
+  return localISO(d);
 }
 
 function renderFlashcards() {
@@ -3526,6 +3545,386 @@ function renderDashQuick(){
   <div class="progress-track"><div class="progress-fill" style="width:${gp}%"></div></div>
   <div class="progress-dates"><span>${dn} de ${tot} disciplinas concluídas</span><span>${doneCh}h de ${totCh}h</span></div>`;
 }
+
+
+// ═══════════════════════════════════════════════════════════
+//  ☁️  SINCRONIZAÇÃO ENTRE APARELHOS (E1)
+//  Servidor: Supabase (Auth + Postgres). O localStorage continua
+//  sendo a cópia local — o app funciona offline e sem conta.
+//  Merge por id + updatedAt + lápides de exclusão (tombstones).
+//  Nenhum módulo existente foi alterado: tudo entra pelo persist().
+// ═══════════════════════════════════════════════════════════
+const SYNC_KEY = 'pj_sync', TOMB_KEY = 'pj_tombstones', KMETA_KEY = 'pj_keymeta', DIRTY_KEY = 'pj_dirty';
+const SYNC_SKIP = new Set(['pj_backups', 'pj_lastBackup', SYNC_KEY, TOMB_KEY, KMETA_KEY, DIRTY_KEY]);
+let syncCfg = load(SYNC_KEY, {});
+if (!syncCfg || typeof syncCfg !== 'object') syncCfg = {};
+let syncShadow = {}, syncRunning = false, syncTimer = null;
+
+function saveSync() { save(SYNC_KEY, syncCfg); }
+function syncKeys() {
+  const ks = [];
+  for (let i = 0; i < localStorage.length; i++) { const k = localStorage.key(i); if (k.startsWith('pj_') && !SYNC_SKIP.has(k)) ks.push(k); }
+  return ks.sort();
+}
+function syncResetShadow() {
+  syncShadow = {};
+  syncKeys().forEach(k => { try { syncShadow[k] = JSON.parse(localStorage.getItem(k)); } catch { syncShadow[k] = null; } });
+}
+
+// ── Carimbo de alteração (updatedAt) e lápides ──
+function stripU(x) { if (!x || typeof x !== 'object') return x; const c = Array.isArray(x) ? [] : {}; for (const k in x) { if (k === 'updatedAt') continue; c[k] = x[k]; } return c; }
+function sameRec(a, b) { return JSON.stringify(stripU(a)) === JSON.stringify(stripU(b)); }
+function addTomb(key, id) {
+  const list = load(TOMB_KEY, []);
+  list.push({ k: key, id: String(id), d: Date.now() });
+  save(TOMB_KEY, list.slice(-800));
+}
+function stampList(key, before, after) {
+  before = Array.isArray(before) ? before : []; after = Array.isArray(after) ? after : [];
+  const prev = new Map(); before.forEach(r => { if (r && r.id != null) prev.set(String(r.id), r); });
+  const seen = new Set();
+  after.forEach(r => {
+    if (!r || typeof r !== 'object' || r.id == null) return;
+    const id = String(r.id); seen.add(id);
+    const old = prev.get(id);
+    if (!old || !sameRec(old, r)) r.updatedAt = Date.now();
+  });
+  prev.forEach((r, id) => { if (!seen.has(id)) addTomb(key, id); });
+}
+function stampPeriods(before, after) {
+  before = before && typeof before === 'object' ? before : {};
+  after = after && typeof after === 'object' ? after : {};
+  const km = load(KMETA_KEY, {});
+  Object.keys(after).forEach(p => {
+    const a = after[p] || {}, b = before[p] || {};
+    stampList('periods:' + p, b.subjects, a.subjects);
+    if (JSON.stringify(stripU(b)) !== JSON.stringify(stripU(a))) km['periods:' + p] = Date.now();
+  });
+  Object.keys(before).forEach(p => { if (!after[p]) km['periods:' + p] = Date.now(); });
+  save(KMETA_KEY, km);
+}
+function stampObject(key, before, after) {
+  if (JSON.stringify(before) !== JSON.stringify(after)) { const km = load(KMETA_KEY, {}); km[key] = Date.now(); save(KMETA_KEY, km); }
+}
+function syncBeforeSave(key) {
+  const k = 'pj_' + key, before = syncShadow[k], after = state[key];
+  try {
+    if (key === 'periods') stampPeriods(before, after);
+    else if (Array.isArray(after) || Array.isArray(before)) stampList(k, before, after);
+    else stampObject(k, before, after);
+  } catch (e) { /* carimbo é melhor-esforço: nunca impede a gravação local */ }
+  try { syncShadow[k] = after === undefined ? null : JSON.parse(JSON.stringify(after)); } catch (e) { syncShadow[k] = null; }
+}
+
+// persist() redefinido: grava local (como antes) + marca alteração para o sync.
+function persist(key) {
+  syncBeforeSave(key);
+  save('pj_' + key, state[key]);
+  syncMarkDirty();
+}
+
+// ── Documento, merge e aplicação ──
+function buildLocalDoc() {
+  const doc = {};
+  syncKeys().forEach(k => { try { doc[k] = JSON.parse(localStorage.getItem(k)); } catch { doc[k] = null; } });
+  doc[TOMB_KEY] = load(TOMB_KEY, []);
+  doc[KMETA_KEY] = load(KMETA_KEY, {});
+  return doc;
+}
+function mergeTombs(a, b) {
+  const map = new Map(), cutoff = Date.now() - 90 * 86400000;
+  [...(a || []), ...(b || [])].forEach(t => {
+    if (!t || t.k == null || t.id == null) return;
+    if ((t.d || 0) < cutoff) return;
+    const k = t.k + '|' + t.id;
+    map.set(k, Math.max(map.get(k) || 0, t.d || 0));
+  });
+  return [...map.entries()].map(([k, d]) => { const i = k.lastIndexOf('|'); return { k: k.slice(0, i), id: k.slice(i + 1), d }; });
+}
+function mergeLists(r, l, key, tombIdx) {
+  r = Array.isArray(r) ? r : []; l = Array.isArray(l) ? l : [];
+  const map = new Map();
+  const add = (rec) => {
+    if (!rec || typeof rec !== 'object') return;
+    if (rec.id == null) { map.set('c:' + JSON.stringify(rec), { rec, u: -1 }); return; }
+    const id = String(rec.id), u = rec.updatedAt || 0;
+    if ((tombIdx[key + '|' + id] || 0) >= u && tombIdx[key + '|' + id]) return;
+    const cur = map.get(id);
+    if (!cur || u >= cur.u) map.set(id, { rec, u });
+  };
+  r.forEach(add); l.forEach(add);
+  return [...map.values()].map(v => v.rec);
+}
+function mergePeriods(r, l, tombIdx) {
+  r = r && typeof r === 'object' ? r : {}; l = l && typeof l === 'object' ? l : {};
+  const out = {}, nums = new Set([...Object.keys(r), ...Object.keys(l)]);
+  nums.forEach(p => {
+    const rp = r[p] || {}, lp = l[p] || {};
+    const base = Object.assign({}, rp, lp);
+    base.subjects = mergeLists(rp.subjects, lp.subjects, 'periods:' + p, tombIdx);
+    out[p] = base;
+  });
+  return out;
+}
+function mergeDoc(remote, local) {
+  remote = remote && typeof remote === 'object' ? remote : {};
+  local = local && typeof local === 'object' ? local : {};
+  const tombs = mergeTombs(remote[TOMB_KEY], local[TOMB_KEY]);
+  const tombIdx = {}; tombs.forEach(t => { tombIdx[t.k + '|' + t.id] = t.d; });
+  const rk = remote[KMETA_KEY] || {}, lk = local[KMETA_KEY] || {};
+  const kmeta = {};
+  new Set([...Object.keys(rk), ...Object.keys(lk)]).forEach(k => { kmeta[k] = Math.max(rk[k] || 0, lk[k] || 0); });
+
+  const out = {};
+  const keys = new Set([...Object.keys(remote), ...Object.keys(local)]);
+  keys.delete(TOMB_KEY); keys.delete(KMETA_KEY);
+  keys.forEach(k => {
+    const r = remote[k], l = local[k];
+    if (k === 'pj_periods') { out[k] = mergePeriods(r, l, tombIdx); return; }
+    if (Array.isArray(r) || Array.isArray(l)) { out[k] = mergeLists(r, l, k, tombIdx); return; }
+    if (r === undefined) { out[k] = l; return; }
+    if (l === undefined) { out[k] = r; return; }
+    out[k] = (lk[k] || 0) > (rk[k] || 0) ? l : r;
+  });
+  out[TOMB_KEY] = tombs;
+  out[KMETA_KEY] = kmeta;
+  return out;
+}
+function applyDoc(doc) {
+  let changed = 0;
+  Object.keys(doc).forEach(k => {
+    if (k === TOMB_KEY || k === KMETA_KEY) return;
+    const next = JSON.stringify(doc[k]);
+    if (localStorage.getItem(k) !== next) { try { localStorage.setItem(k, next); changed++; } catch { warnSaveFailure(); } }
+  });
+  try {
+    localStorage.setItem(TOMB_KEY, JSON.stringify(doc[TOMB_KEY] || []));
+    localStorage.setItem(KMETA_KEY, JSON.stringify(doc[KMETA_KEY] || {}));
+  } catch (e) { warnSaveFailure(); }
+  return changed;
+}
+function reloadStateFromStorage() {
+  Object.keys(state).forEach(k => {
+    const raw = localStorage.getItem('pj_' + k);
+    if (raw === null) return;
+    try { state[k] = JSON.parse(raw); } catch (e) {}
+  });
+  syncResetShadow();
+}
+function refreshAfterSync() {
+  reloadStateFromStorage();
+  const active = document.querySelector('.page.active');
+  const id = active ? active.id.replace('page-', '') : 'inicio';
+  try { showPage(id, null); } catch (e) {}
+  try { renderSyncUI(); } catch (e) {}
+}
+function stableStr(v) {
+  if (v === null || typeof v !== 'object') return JSON.stringify(v);
+  if (Array.isArray(v)) return '[' + v.map(stableStr).join(',') + ']';
+  const keys = Object.keys(v).filter(k => !(k === TOMB_KEY || k === KMETA_KEY)).sort();
+  return '{' + keys.map(k => JSON.stringify(k) + ':' + stableStr(v[k])).join(',') + '}';
+}
+
+// ── HTTP (Supabase REST/Auth via fetch, sem SDK) ──
+function sbBase() { return String(syncCfg.url || '').replace(/\/+$/, ''); }
+async function sbFetch(path, opts) {
+  opts = opts || {};
+  const headers = Object.assign({
+    'apikey': syncCfg.key || '',
+    'Authorization': 'Bearer ' + ((syncCfg.session && syncCfg.session.access_token) || syncCfg.key || ''),
+    'Content-Type': 'application/json'
+  }, opts.headers || {});
+  let r;
+  try { r = await fetch(sbBase() + path, Object.assign({}, opts, { headers })); }
+  catch (e) { throw new Error('Sem conexão com o servidor'); }
+  const text = await r.text();
+  let body = null; try { body = text ? JSON.parse(text) : null; } catch (e) { body = text; }
+  if (!r.ok) {
+    const msg = (body && (body.msg || body.message || body.error_description || body.error)) || ('HTTP ' + r.status);
+    throw new Error(String(msg));
+  }
+  return body;
+}
+async function sbSignIn(email, password) {
+  const b = await sbFetch('/auth/v1/token?grant_type=password', { method: 'POST', body: JSON.stringify({ email: email, password: password }) });
+  if (!b || !b.access_token) throw new Error('Login sem token');
+  syncCfg.session = {
+    access_token: b.access_token,
+    refresh_token: b.refresh_token || '',
+    expires_at: Date.now() + ((b.expires_in || 3600) * 1000),
+    user_id: (b.user && b.user.id) || ''
+  };
+  saveSync();
+  return b;
+}
+async function sbSignUp(email, password) {
+  await sbFetch('/auth/v1/signup', { method: 'POST', body: JSON.stringify({ email: email, password: password }) });
+  return sbSignIn(email, password);
+}
+async function sbRefresh() {
+  if (!syncCfg.session || !syncCfg.session.refresh_token) return;
+  const b = await sbFetch('/auth/v1/token?grant_type=refresh_token', { method: 'POST', body: JSON.stringify({ refresh_token: syncCfg.session.refresh_token }) });
+  if (b && b.access_token) {
+    syncCfg.session.access_token = b.access_token;
+    syncCfg.session.refresh_token = b.refresh_token || syncCfg.session.refresh_token;
+    syncCfg.session.expires_at = Date.now() + ((b.expires_in || 3600) * 1000);
+    saveSync();
+  }
+}
+async function sbGetRow() {
+  const uid = syncCfg.session.user_id;
+  const rows = await sbFetch('/rest/v1/planner_state?select=doc,rev,updated_at&user_id=eq.' + encodeURIComponent(uid), { headers: { 'Accept': 'application/json' } });
+  return Array.isArray(rows) ? (rows[0] || null) : null;
+}
+async function sbCreateRow(doc) {
+  return sbFetch('/rest/v1/planner_state', {
+    method: 'POST',
+    headers: { 'Prefer': 'return=representation' },
+    body: JSON.stringify([{ user_id: syncCfg.session.user_id, doc: doc, rev: 1 }])
+  });
+}
+async function sbPatchRow(doc, rev) {
+  return sbFetch('/rest/v1/planner_state?user_id=eq.' + encodeURIComponent(syncCfg.session.user_id) + '&rev=eq.' + rev, {
+    method: 'PATCH',
+    headers: { 'Prefer': 'return=representation' },
+    body: JSON.stringify({ doc: doc, rev: rev + 1, updated_at: new Date().toISOString() })
+  });
+}
+
+// ── Ciclo de sincronização ──
+function syncMarkDirty() {
+  if (!syncCfg.enabled) return;
+  try { localStorage.setItem(DIRTY_KEY, '1'); } catch (e) {}
+  if (syncTimer) clearTimeout(syncTimer);
+  syncTimer = setTimeout(function () { syncNow(); }, 1500);
+}
+async function syncNow() {
+  if (!syncCfg.enabled) return { ok: false, reason: 'off' };
+  if (!syncCfg.url || !syncCfg.key || !syncCfg.session || !syncCfg.session.access_token) return { ok: false, reason: 'auth' };
+  if (syncRunning) return { ok: false, reason: 'busy' };
+  syncRunning = true;
+  syncSetStatus('syncing');
+  try {
+    if (syncCfg.session.expires_at && Date.now() > syncCfg.session.expires_at - 60000 && syncCfg.session.refresh_token) await sbRefresh();
+    let row = await sbGetRow();
+    let rev = row ? row.rev : 0;
+    if (!row) {
+      // Primeira sincronização: ponto de recuperação local ANTES de enviar qualquer coisa.
+      if (localStorage.getItem('pj_sync_migrated') !== '1') {
+        snapshotNow('antes da 1ª sincronização');
+        try { localStorage.setItem('pj_sync_migrated', '1'); } catch (e) {}
+      }
+      const doc = buildLocalDoc();
+      await sbCreateRow(doc);
+      rev = 1;
+    } else {
+      let merged = mergeDoc(row.doc || {}, buildLocalDoc());
+      if (stableStr(merged) !== stableStr(row.doc || {})) {
+        let res = await sbPatchRow(merged, row.rev);
+        if (!Array.isArray(res) || res.length === 0) {
+          // outro aparelho gravou no meio: mescla de novo e tenta uma vez
+          const fresh = await sbGetRow();
+          if (fresh) {
+            merged = mergeDoc(fresh.doc || {}, merged);
+            res = await sbPatchRow(merged, fresh.rev);
+            if (!Array.isArray(res) || res.length === 0) throw new Error('Conflito de versão: tente novamente');
+            rev = fresh.rev + 1;
+          }
+        } else { rev = row.rev + 1; }
+      }
+      const changed = applyDoc(merged);
+      if (changed) refreshAfterSync();
+    }
+    try { localStorage.removeItem(DIRTY_KEY); } catch (e) {}
+    syncCfg.lastSync = new Date().toISOString();
+    syncCfg.lastError = '';
+    saveSync();
+    syncSetStatus('ok');
+    return { ok: true, rev: rev };
+  } catch (e) {
+    syncCfg.lastError = String((e && e.message) || e);
+    saveSync();
+    syncSetStatus('error', syncCfg.lastError);
+    return { ok: false, error: syncCfg.lastError };
+  } finally {
+    syncRunning = false;
+  }
+}
+
+// ── Interface (Config › Sincronização) ──
+function syncStatusText() {
+  const el = id => document.getElementById(id);
+  const on = !!(syncCfg.session && syncCfg.session.access_token);
+  if (!on) return 'Não conectada.';
+  const when = syncCfg.lastSync ? new Date(syncCfg.lastSync).toLocaleString('pt-BR') : 'nunca';
+  const pend = localStorage.getItem(DIRTY_KEY) === '1' ? ' · alterações pendentes' : '';
+  if (syncCfg.lastError) return 'Erro: ' + syncCfg.lastError + pend;
+  return (syncCfg.enabled ? 'Ativa' : 'Conectada (desligada)') + ' · último envio: ' + when + pend;
+}
+function syncSetStatus(state, msg) {
+  const el = document.getElementById('sync-status');
+  if (!el) return;
+  if (state === 'syncing') { el.textContent = 'Sincronizando…'; return; }
+  if (state === 'error') { el.textContent = 'Erro: ' + msg; return; }
+  el.textContent = syncStatusText();
+}
+function renderSyncUI() {
+  const el = id => document.getElementById(id);
+  if (!el('sync-url')) return;
+  el('sync-url').value = syncCfg.url || '';
+  el('sync-key').value = syncCfg.key || '';
+  el('sync-email').value = syncCfg.email || '';
+  const on = !!(syncCfg.session && syncCfg.session.access_token);
+  el('sync-auth-row').style.display = on ? 'none' : 'block';
+  el('sync-on-row').style.display = on ? 'block' : 'none';
+  el('sync-enabled').checked = !!syncCfg.enabled;
+  el('sync-status').textContent = syncStatusText();
+  el('sync-user').textContent = on ? (syncCfg.email || '') : '';
+}
+function syncReadForm() {
+  syncCfg.url = (document.getElementById('sync-url').value || '').trim();
+  syncCfg.key = (document.getElementById('sync-key').value || '').trim();
+  syncCfg.email = (document.getElementById('sync-email').value || '').trim();
+  saveSync();
+}
+async function syncLoginUI(signup) {
+  syncReadForm();
+  const pass = document.getElementById('sync-pass').value;
+  if (!syncCfg.url || !syncCfg.key) { alert('Informe a URL do projeto e a chave pública (anon) do Supabase.'); return; }
+  if (!syncCfg.email || !pass) { alert('Informe e-mail e senha.'); return; }
+  syncSetStatus('syncing');
+  try {
+    if (signup) await sbSignUp(syncCfg.email, pass); else await sbSignIn(syncCfg.email, pass);
+    document.getElementById('sync-pass').value = '';
+    syncCfg.enabled = true;
+    saveSync();
+    renderSyncUI();
+    await syncNow();
+    renderSyncUI();
+  } catch (e) {
+    syncCfg.lastError = String(e.message || e); saveSync();
+    syncSetStatus('error', syncCfg.lastError);
+    alert('Não foi possível entrar: ' + syncCfg.lastError);
+  }
+}
+function syncLogoutUI() {
+  if (!confirm('Desconectar a sincronização deste aparelho?\n\nOs dados continuam salvos aqui; nada é apagado.')) return;
+  syncCfg.session = null; syncCfg.enabled = false; syncCfg.lastSync = ''; syncCfg.lastError = '';
+  saveSync(); renderSyncUI();
+}
+async function syncToggleUI() {
+  syncCfg.enabled = !!document.getElementById('sync-enabled').checked;
+  saveSync();
+  if (syncCfg.enabled) { await syncNow(); }
+  renderSyncUI();
+}
+async function syncManualUI() { await syncNow(); renderSyncUI(); }
+
+// Gatilhos automáticos: ao abrir, ao voltar a conexão e a cada minuto se houver pendência.
+window.addEventListener('online', function () { if (syncCfg.enabled) syncNow(); });
+document.addEventListener('visibilitychange', function () { if (document.visibilityState === 'visible' && syncCfg.enabled) syncNow(); });
+setInterval(function () { if (syncCfg.enabled && localStorage.getItem(DIRTY_KEY) === '1') syncNow(); }, 60000);
+setTimeout(function () { if (syncCfg.enabled && syncCfg.session && syncCfg.session.access_token) syncNow(); }, 1500);
 
 </script>
 </body>
