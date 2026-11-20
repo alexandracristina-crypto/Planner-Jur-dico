@@ -1696,20 +1696,34 @@ function taskPeriodOf(t) {
   return per != null ? Number(per) : state.currentPeriod;
 }
 
+// Ordem de prioridade nas listas de tarefas (Alta → Média → Baixa)
+const TASK_PRIO_RANK = { 'Alta': 0, 'Média': 1, 'Baixa': 2 };
+const taskPrioRank = t => TASK_PRIO_RANK[t.priority] != null ? TASK_PRIO_RANK[t.priority] : 1;
+// Agrupa por dia; dentro do dia, concluídas no fim e depois por prioridade
+const taskSort = (a, b) =>
+  a.date.localeCompare(b.date) ||
+  (a.completed ? 1 : 0) - (b.completed ? 1 : 0) ||
+  taskPrioRank(a) - taskPrioRank(b);
+
 function renderTaskList() {
   const date = document.getElementById('task-date').value || today();
   const tdy = today();
-  let tasks = [...state.tasks].filter(t => t.date);
+  // Todas as visões mostram apenas as tarefas do período acadêmico selecionado
+  let tasks = [...state.tasks].filter(t => t.date && Number(taskPeriodOf(t)) === Number(state.currentPeriod));
   if (taskView === 'dia') tasks = tasks.filter(t => t.date === date);
   else if (taskView === 'semana') {
-    const d0 = new Date(date + 'T12:00'), d1 = new Date(d0);
-    d1.setDate(d1.getDate() + 6);
-    const end = ymd(d1.getFullYear(), d1.getMonth(), d1.getDate());
-    tasks = tasks.filter(t => t.date >= date && t.date <= end);
+    // Semana fixa de segunda a domingo, independente do dia escolhido
+    const d0 = new Date(date + 'T12:00');
+    const mon = new Date(d0), sun = new Date(d0);
+    mon.setDate(d0.getDate() - ((d0.getDay() + 6) % 7));
+    sun.setDate(mon.getDate() + 6);
+    const start = ymd(mon.getFullYear(), mon.getMonth(), mon.getDate());
+    const end   = ymd(sun.getFullYear(), sun.getMonth(), sun.getDate());
+    tasks = tasks.filter(t => t.date >= start && t.date <= end);
   }
   else if (taskView === 'mes') { const ym = date.slice(0, 7); tasks = tasks.filter(t => t.date.slice(0, 7) === ym); }
-  else tasks = tasks.filter(t => !t.completed && t.date < tdy).sort((a, b) => a.date.localeCompare(b.date));
-  if (taskView !== 'atrasadas') tasks.sort((a, b) => a.date.localeCompare(b.date) || (a.completed ? 1 : 0) - (b.completed ? 1 : 0));
+  else tasks = tasks.filter(t => !t.completed && t.date < tdy);
+  tasks.sort(taskSort);
 
   const el = document.getElementById('task-list');
   if (!tasks.length) {
