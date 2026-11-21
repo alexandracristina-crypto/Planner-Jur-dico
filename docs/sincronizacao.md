@@ -62,6 +62,11 @@ nem gravar a linha de outra conta (testado: 403).
 6. No outro aparelho, repita o passo 4 com **o mesmo e-mail e senha**: ele baixa e
    mescla os dados existentes.
 
+> **Chave secreta é bloqueada.** Se você colar a chave `service_role` (ou uma
+> `sb_secret_…`) no campo da chave, o app recusa a conexão, apaga o valor e explica o
+> motivo — essa chave dá acesso total ao banco e nunca deve ir para o navegador. O
+> campo aceita apenas a chave pública (`anon public` / `sb_publishable_…`).
+
 Para desligar: desmarque **Sincronização ativa** ou use **Desconectar**. Nada é
 apagado do aparelho.
 
@@ -80,10 +85,14 @@ Plano Pro (US$ 25/mês) só é necessário para backup automático, PITR e remov
 
 ## 6. Limitações conhecidas
 
-- Objetos simples (`pj_notes`, `pj_goals`, `pj_config`) mesclam **por chave**, não por
-  sub-item: editar notas de duas disciplinas diferentes, ao mesmo tempo, em aparelhos
-  diferentes, mantém a última alteração daquela chave.
-- Excluir um **período inteiro** não gera lápides para as disciplinas dele.
+- `pj_notes`, `pj_goals`, `pj_scores` e `pj_config` mesclam **por sub-chave** (semana,
+  disciplina ou componente): editar notas de duas semanas diferentes em aparelhos
+  diferentes preserva as duas. Listas dentro de uma sub-chave (metas) mesclam por `id`,
+  com lápides — exclusão de meta propaga.
+- `pj_hist` (médias por período) ainda mescla pela chave inteira: editar médias de dois
+  períodos ao mesmo tempo em aparelhos diferentes mantém a última alteração.
+- Excluir um **período inteiro** agora gera lápides para todas as disciplinas dele
+  (antes elas voltavam na próxima mesclagem).
 - O servidor guarda o documento atual; **snapshots no servidor** (histórico de versões)
   ficam para a etapa de auditoria (E6).
 - A senha **não é armazenada**; só o token da sessão, no próprio navegador.
@@ -95,9 +104,13 @@ e a tabela `planner_state`), com CORS e persistência em volume. Serve para vali
 "aparelhos" sem conta externa.
 
 ```bash
-docker compose -f docker-compose.base44.yml up -d      # sobe web (3000) + sync-dev (8787)
-curl -s http://localhost:8787/health                   # {"ok":true,...}
+docker compose -f docker-compose.base44.yml up -d        # sobe só o app (3000)
+docker compose -f docker-compose.sync-dev.yml up -d      # sobe o dublê (8787), só para testar
+curl -s http://localhost:8787/health                     # {"ok":true,...}
 ```
+
+O `sync-dev` **não** está no compose de publicação: ele fica em
+`docker-compose.sync-dev.yml` justamente para não ir junto com o app.
 
 No app, use a URL pública da porta 8787 como "Project URL" e qualquer texto como
 "anon key". O serviço pode ser removido do compose sem afetar o app.

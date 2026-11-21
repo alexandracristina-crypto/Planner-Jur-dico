@@ -3148,8 +3148,11 @@ function delComp(id){if(!confirm('Remover este componente? As notas já lançada
 // (nada é apagado nem substituído; registros iguais não são duplicados).
 const BACKUP_LABELS={pj_tasks:'tarefas',pj_revisions:'revisões',pj_exams:'provas',pj_grades:'notas',pj_notes:'notas livres',pj_goals:'metas',pj_errors:'erros',pj_terms:'termos',pj_attendance:'faltas',pj_juris:'jurisprudências',pj_escritorio:'escritório',pj_leituras:'leituras',pj_flashcards:'flashcards',pj_assignments:'entregas',pj_events:'eventos',pj_compl:'atividades compl.',pj_conteudos:'conteúdos',pj_periods:'períodos',pj_hist:'histórico',pj_scores:'notas por componente'};
 
-function backupData(){const d={app:'planner-juridico',v:1,date:new Date().toISOString(),data:{}};
- for(let i=0;i<localStorage.length;i++){const k=localStorage.key(i);if(k.startsWith('pj_')&&k!=='pj_backups'&&k!=='pj_lastBackup')d.data[k]=localStorage.getItem(k);}
+const BK_EXCLUDE=new Set(['pj_sync','pj_dirty']);
+const BK_KNOWN=['pj_assignments','pj_attendance','pj_backups','pj_compl','pj_conteudos','pj_config','pj_curr1','pj_currentPeriod','pj_errors','pj_escritorio','pj_evals','pj_events','pj_exams','pj_flashcards','pj_goals','pj_grades','pj_hist','pj_juris','pj_keymeta','pj_lastBackup','pj_leituras','pj_notes','pj_periods','pj_qcount','pj_revisions','pj_scores','pj_sync_migrated','pj_tasks','pj_terms','pj_tombstones'];
+function backupData(){const d={app:'planner-juridico',v:2,date:new Date().toISOString(),data:{},manifest:{}};const vistos=[];
+ for(let i=0;i<localStorage.length;i++){const k=localStorage.key(i);if(!k.startsWith('pj_')||BK_EXCLUDE.has(k))continue;const raw=localStorage.getItem(k);d.data[k]=raw;vistos.push(k);let n=null;try{const v=JSON.parse(raw);n=Array.isArray(v)?v.length:(v&&typeof v==='object'?Object.keys(v).length:1);}catch(e){n=null;}d.manifest[k]={registros:n,bytes:raw?raw.length:0};}
+ d.manifest.ausentes=BK_KNOWN.filter(function(k){return vistos.indexOf(k)<0;});
  return d;}
 function backupJson(){return JSON.stringify(backupData());}
 function recordCount(v){if(Array.isArray(v))return v.length;if(v&&typeof v==='object')return Object.keys(v).length;return v==null?0:1;}
@@ -3600,8 +3603,30 @@ function stampPeriods(before, after) {
     stampList('periods:' + p, b.subjects, a.subjects);
     if (JSON.stringify(stripU(b)) !== JSON.stringify(stripU(a))) km['periods:' + p] = Date.now();
   });
-  Object.keys(before).forEach(p => { if (!after[p]) km['periods:' + p] = Date.now(); });
+  Object.keys(before).forEach(p => {
+    if (after[p]) return;
+    km['periods:' + p] = Date.now();
+    // Período removido por inteiro: cada disciplina dele recebe lápide,
+    // senão outro aparelho ressuscitaria as disciplinas na próxima mesclagem.
+    const subs = (before[p] && before[p].subjects) || [];
+    subs.forEach(s => { if (s && s.id != null) addTomb('periods:' + p, String(s.id)); });
+  });
   save(KMETA_KEY, km);
+}
+// Objetos compostos (notas por semana, metas por semana, notas por componente,
+// configurações): carimba cada sub-chave alterada, para a mesclagem decidir item a item.
+const SUB_MERGE = new Set(['pj_notes', 'pj_goals', 'pj_scores', 'pj_config']);
+function stampFields(key, before, after) {
+  before = (before && typeof before === 'object' && !Array.isArray(before)) ? before : {};
+  after = (after && typeof after === 'object' && !Array.isArray(after)) ? after : {};
+  const km = load(KMETA_KEY, {}); let touched = false;
+  new Set([...Object.keys(before), ...Object.keys(after)]).forEach(sub => {
+    const b = before[sub], a = after[sub];
+    if (JSON.stringify(b) === JSON.stringify(a)) return;
+    km[key + '|' + sub] = Date.now(); touched = true;
+    if (Array.isArray(a) || Array.isArray(b)) stampList(key + '|' + sub, b, a);
+  });
+  if (touched) { km[key] = Date.now(); save(KMETA_KEY, km); }
 }
 function stampObject(key, before, after) {
   if (JSON.stringify(before) !== JSON.stringify(after)) { const km = load(KMETA_KEY, {}); km[key] = Date.now(); save(KMETA_KEY, km); }
@@ -3610,6 +3635,7 @@ function syncBeforeSave(key) {
   const k = 'pj_' + key, before = syncShadow[k], after = state[key];
   try {
     if (key === 'periods') stampPeriods(before, after);
+    else if (SUB_MERGE.has(k)) stampFields(k, before, after);
     else if (Array.isArray(after) || Array.isArray(before)) stampList(k, before, after);
     else stampObject(k, before, after);
   } catch (e) { /* carimbo é melhor-esforço: nunca impede a gravação local */ }
@@ -3655,14 +3681,33 @@ function mergeLists(r, l, key, tombIdx) {
   r.forEach(add); l.forEach(add);
   return [...map.values()].map(v => v.rec);
 }
-function mergePeriods(r, l, tombIdx) {
+function mergePeriods(r, l, tombIdx, rk, lk) {
+  rk = rk || {}; lk = lk || {};
   r = r && typeof r === 'object' ? r : {}; l = l && typeof l === 'object' ? l : {};
   const out = {}, nums = new Set([...Object.keys(r), ...Object.keys(l)]);
   nums.forEach(p => {
     const rp = r[p] || {}, lp = l[p] || {};
-    const base = Object.assign({}, rp, lp);
+    const base = (lk['periods:' + p] || 0) > (rk['periods:' + p] || 0) ? Object.assign({}, rp, lp) : Object.assign({}, lp, rp);
     base.subjects = mergeLists(rp.subjects, lp.subjects, 'periods:' + p, tombIdx);
     out[p] = base;
+  });
+  return out;
+}
+// Mescla objeto a objeto: editar as notas de uma semana/disciplina em um aparelho
+// não apaga o que foi editado em outro. Listas dentro de cada sub-chave são
+// mescladas por id (com lápides), preservando exclusões.
+function mergeFields(k, r, l, tombIdx, rk, lk) {
+  r = r && typeof r === 'object' && !Array.isArray(r) ? r : {};
+  l = l && typeof l === 'object' && !Array.isArray(l) ? l : {};
+  rk = rk || {}; lk = lk || {};
+  const out = {};
+  new Set([...Object.keys(r), ...Object.keys(l)]).forEach(sub => {
+    const rv = r[sub], lv = l[sub];
+    if (rv === undefined) { out[sub] = lv; return; }
+    if (lv === undefined) { out[sub] = rv; return; }
+    if (Array.isArray(rv) || Array.isArray(lv)) { out[sub] = mergeLists(rv, lv, k + '|' + sub, tombIdx); return; }
+    const localWins = (lk[k + '|' + sub] || lk[k] || 0) > (rk[k + '|' + sub] || rk[k] || 0);
+    out[sub] = localWins ? lv : rv;
   });
   return out;
 }
@@ -3680,7 +3725,8 @@ function mergeDoc(remote, local) {
   keys.delete(TOMB_KEY); keys.delete(KMETA_KEY);
   keys.forEach(k => {
     const r = remote[k], l = local[k];
-    if (k === 'pj_periods') { out[k] = mergePeriods(r, l, tombIdx); return; }
+    if (k === 'pj_periods') { out[k] = mergePeriods(r, l, tombIdx, rk, lk); return; }
+    if (SUB_MERGE.has(k)) { out[k] = mergeFields(k, r, l, tombIdx, rk, lk); return; }
     if (Array.isArray(r) || Array.isArray(l)) { out[k] = mergeLists(r, l, k, tombIdx); return; }
     if (r === undefined) { out[k] = l; return; }
     if (l === undefined) { out[k] = r; return; }
@@ -3801,6 +3847,8 @@ function syncMarkDirty() {
 async function syncNow() {
   if (!syncCfg.enabled) return { ok: false, reason: 'off' };
   if (!syncCfg.url || !syncCfg.key || !syncCfg.session || !syncCfg.session.access_token) return { ok: false, reason: 'auth' };
+  const chaveBloqueada = syncKeyProblem(syncCfg.url, syncCfg.key);
+  if (chaveBloqueada) { syncCfg.enabled = false; syncCfg.key = ''; saveSync(); syncSetStatus('error', chaveBloqueada); return { ok: false, reason: 'key' }; }
   if (syncRunning) return { ok: false, reason: 'busy' };
   syncRunning = true;
   syncSetStatus('syncing');
@@ -3887,10 +3935,35 @@ function syncReadForm() {
   syncCfg.email = (document.getElementById('sync-email').value || '').trim();
   saveSync();
 }
+// Lê o papel (role) de uma chave JWT do Supabase sem validar assinatura:
+// serve só para impedir que a chave secreta seja usada no navegador.
+function syncKeyRole(k) {
+  try {
+    const p = String(k || '').split('.');
+    if (p.length < 2) return '';
+    const b = p[1].replace(/-/g, '+').replace(/_/g, '/');
+    const j = JSON.parse(atob(b + '='.repeat((4 - b.length % 4) % 4)));
+    return String(j.role || '');
+  } catch (e) { return ''; }
+}
+// Devolve a mensagem do problema, ou '' quando a URL e a chave servem para o navegador.
+function syncKeyProblem(url, key) {
+  if (/^sb_secret_/i.test(key || '') || syncKeyRole(key) === 'service_role')
+    return 'Essa é a chave SECRETA do projeto (service_role / sb_secret_). Ela dá acesso total ao banco e nunca deve ser usada no navegador. Copie a chave pública (anon public ou sb_publishable_) em Project Settings › API Keys.';
+  if (url && !/^https:\/\//i.test(url)) return 'A URL do projeto precisa começar com https://.';
+  return '';
+}
 async function syncLoginUI(signup) {
   syncReadForm();
   const pass = document.getElementById('sync-pass').value;
   if (!syncCfg.url || !syncCfg.key) { alert('Informe a URL do projeto e a chave pública (anon) do Supabase.'); return; }
+  const chaveInvalida = syncKeyProblem(syncCfg.url, syncCfg.key);
+  if (chaveInvalida) {
+    syncCfg.key = ''; syncCfg.session = null; saveSync();
+    const campo = document.getElementById('sync-key'); if (campo) campo.value = '';
+    syncSetStatus('error', chaveInvalida);
+    return;
+  }
   if (!syncCfg.email || !pass) { alert('Informe e-mail e senha.'); return; }
   syncSetStatus('syncing');
   try {
