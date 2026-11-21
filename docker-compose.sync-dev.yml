@@ -1,0 +1,38 @@
+# Servidor de TESTE da sincronização (emula Auth + planner_state do Supabase).
+#
+# NÃO faz parte da publicação do app: este arquivo fica fora de
+# docker-compose.base44.yml de propósito. Suba só quando for validar dois
+# "aparelhos" sem conta externa:
+#
+#   docker compose -f docker-compose.sync-dev.yml up -d
+#
+# Produção usa o Supabase real — ver docs/sincronizacao.md.
+services:
+  sync-dev:
+    image: node:22-alpine
+    working_dir: /app
+    command: ["node", "sync-server.mjs"]
+    ports:
+      - "8787:8787"
+    volumes:
+      - ./:/app
+      - syncdata:/data
+    environment:
+      - PORT=8787
+    restart: on-failure
+    labels:
+      base44.project: "Sync de teste (não publicar)"
+      base44.kind: "worker"
+    healthcheck:
+      test:
+        - CMD
+        - node
+        - -e
+        - "fetch('http://127.0.0.1:8787/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 5s
+
+volumes:
+  syncdata:
